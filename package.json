@@ -11,9 +11,9 @@
   "author": "SaaSTrust",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "express-session": "^1.17.4",
-    "sqlite3": "^5.1.7",
-    "bcrypt": "^5.1.1"
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "sqlite3": "^5.1.8",
+    "bcryptjs": "^2.4.3"
   }
 }
