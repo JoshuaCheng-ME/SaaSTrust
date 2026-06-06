@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaSTrust - Client Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .progress-bar {
+      transition: width 0.5s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <!-- Header -->
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
+        <span class="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">Client</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-slate-500" id="userEmail"></span>
+        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Create Campaign Card -->
+    <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8 mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-slate-900">Create New Campaign</h2>
+        <span class="text-sm text-slate-500">Get authentic reviews for your SaaS</span>
+      </div>
+      
+      <form id="campaignForm" class="space-y-5">
+        <div class="grid md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Product Name</label>
+            <input 
+              type="text" 
+              id="productName"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., Acme CRM"
+              required
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Target Platform</label>
+            <select 
+              id="targetSite"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select platform</option>
+              <option value="G2">G2</option>
+              <option value="Capterra">Capterra</option>
+              <option value="Trustpilot">Trustpilot</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Target Industry</label>
+            <select 
+              id="reqIndustry"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select industry</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="HR">HR / Human Resources</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Development">Software Development</option>
+              <option value="Finance">Finance / FinTech</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Education">Education / EdTech</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="SaaS">SaaS / B2B Software</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Total Reviews Needed</label>
+            <input 
+              type="number" 
+              id="totalSlots"
+              min="1" max="50"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., 10"
+              required
+            />
+          </div>
+        </div>
+        
+        <button 
+          type="submit"
+          class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+        >
+          + Create New Campaign
+        </button>
+      </form>
+    </div>
+
+    <!-- My Jobs Section -->
+    <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-slate-900">My Campaigns</h2>
+        <div class="flex items-center gap-3">
+          <button onclick="downloadInvoice()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+            Download Invoice
+          </button>
+        </div>
+      </div>
+      
+      <!-- Jobs List -->
+      <div id="jobsList" class="space-y-4">
+        <div class="text-center py-12 text-slate-400">
+          <p>No campaigns found. Create your first campaign above!</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Load user info
+    async function loadUser() {
+      const response = await fetch('/api/auth/user');
+      if (response.ok) {
+        const user = await response.json();
+        document.getElementById('userEmail').textContent = user.email;
+        loadJobs();
+      } else {
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Load jobs
+    async function loadJobs() {
+      const response = await fetch('/api/client/my-jobs');
+      if (response.ok) {
+        const jobs = await response.json();
+        renderJobs(jobs);
+      }
+    }
+
+    // Render jobs
+    function renderJobs(jobs) {
+      const container = document.getElementById('jobsList');
+      
+      if (jobs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <p>No campaigns found. Create your first campaign above!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = jobs.map(job => {
+        const progress = job.total_slots > 0 ? Math.round((job.approved_count / job.total_slots) * 100) : 0;
+        const progressColor = progress === 100 ? 'bg-green-500' : 'bg-blue-600';
+        
+        return `
+          <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="font-semibold text-slate-900">${job.product_name}</h3>
+                <div class="flex items-center gap-3 mt-1">
+                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${job.target_site}</span>
+                  <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">${job.req_industry}</span>
+                </div>
+              </div>
+              <span class="px-3 py-1 ${getStatusColor(job.status)} text-xs font-medium rounded-full">
+                ${getStatusLabel(job.status)}
+              </span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-slate-500">Progress</span>
+                <span class="text-sm font-medium text-slate-700">${job.approved_count}/${job.total_slots} reviews</span>
+              </div>
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full ${progressColor} progress-bar rounded-full" style="width: ${progress}%"></div>
+              </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex items-center gap-3">
+              <button onclick="markAsPaid(${job.id})" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                I Have Wired the Money
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'pending_payment': return 'bg-amber-100 text-amber-700';
+        case 'active': return 'bg-green-100 text-green-700';
+        case 'completed': return 'bg-slate-100 text-slate-700';
+        default: return 'bg-slate-100 text-slate-700';
+      }
+    }
+
+    function getStatusLabel(status) {
+      switch(status) {
+        case 'pending_payment': return 'Pending Payment';
+        case 'active': return 'Active';
+        case 'completed': return 'Completed';
+        default: return status;
+      }
+    }
+
+    // Create campaign
+    document.getElementById('campaignForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const productName = document.getElementById('productName').value;
+      const targetSite = document.getElementById('targetSite').value;
+      const reqIndustry = document.getElementById('reqIndustry').value;
+      const totalSlots = document.getElementById('totalSlots').value;
+      
+      const response = await fetch('/api/client/campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: productName,
+          target_site: targetSite,
+          req_industry: reqIndustry,
+          total_slots: parseInt(totalSlots)
+        })
+      });
+      
+      if (response.ok) {
+        alert('Campaign created successfully!');
+        document.getElementById('campaignForm').reset();
+        loadJobs();
+      } else {
+        alert('Failed to create campaign');
+      }
+    });
+
+    // Mark as paid
+    async function markAsPaid(campaignId) {
+      if (confirm('Are you sure you have wired the payment?')) {
+        alert('Thank you! Our team will verify your payment and activate your campaign within 24 hours.');
+        loadJobs();
+      }
+    }
+
+    // Download invoice
+    function downloadInvoice() {
+      alert('Invoice downloaded!\n\nSaaSTrust.net\nBank: Wise (TransferWise)\nAccount: USD\nDetails: Will be sent to your email.');
+    }
+
+    // Logout
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // Initialize
+    loadUser();
+  </script>
+</body>
+</html>

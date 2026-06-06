@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaSTrust - Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <!-- Header -->
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
+        <span class="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">Admin</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-slate-500">admin@saastrust.net</span>
+        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Pending Approvals Section -->
+    <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-slate-900">Pending Approvals</h2>
+        <button onclick="loadPending()" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+          Refresh
+        </button>
+      </div>
+      
+      <div id="pendingList" class="space-y-4">
+        <div class="text-center py-12 text-slate-400">
+          <p>No pending approvals.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-3 gap-4 mt-8">
+      <div class="bg-white rounded-xl p-6 border border-slate-100">
+        <h3 class="text-sm font-medium text-slate-500 mb-2">Total Clients</h3>
+        <p class="text-2xl font-bold text-slate-900" id="clientCount">0</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 border border-slate-100">
+        <h3 class="text-sm font-medium text-slate-500 mb-2">Total Reviewers</h3>
+        <p class="text-2xl font-bold text-slate-900" id="testerCount">0</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 border border-slate-100">
+        <h3 class="text-sm font-medium text-slate-500 mb-2">Active Campaigns</h3>
+        <p class="text-2xl font-bold text-slate-900" id="campaignCount">0</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Load pending approvals
+    async function loadPending() {
+      const response = await fetch('/api/admin/pending');
+      if (response.ok) {
+        const pending = await response.json();
+        renderPending(pending);
+      } else {
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Render pending approvals
+    function renderPending(pending) {
+      const container = document.getElementById('pendingList');
+      
+      if (pending.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <p>No pending approvals.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = pending.map(item => `
+        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="font-semibold text-slate-900">${item.product_name}</h3>
+              <div class="flex items-center gap-3 mt-1">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${item.target_site}</span>
+                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${item.tester_email}</span>
+              </div>
+            </div>
+          </div>
+          
+          ${item.proof_url ? `
+            <div class="mb-4">
+              <p class="text-sm text-slate-500 mb-2">Proof URL:</p>
+              <a href="${item.proof_url}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm break-all">${item.proof_url}</a>
+            </div>
+          ` : ''}
+          
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-slate-500">Awaiting review</p>
+            <button onclick="approve(${item.id})" class="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all shadow-lg shadow-green-500/20">
+              Approve
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Approve application
+    async function approve(applicationId) {
+      const response = await fetch('/api/admin/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ application_id: applicationId })
+      });
+      
+      if (response.ok) {
+        alert('Application approved!');
+        loadPending();
+      } else {
+        alert('Failed to approve');
+      }
+    }
+
+    // Logout
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // Initialize
+    loadPending();
+  </script>
+</body>
+</html>

@@ -2,15 +2,18 @@
   "name": "saastrust-node",
   "version": "1.0.0",
   "description": "SaaSTrust - Authentic B2B Reviews Platform",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node app.js",
+    "dev": "node app.js"
   },
   "keywords": ["saas", "reviews", "b2b"],
   "author": "SaaSTrust",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "better-sqlite3": "^9.4.1",
+    "bcrypt": "^5.1.1"
   }
 }
