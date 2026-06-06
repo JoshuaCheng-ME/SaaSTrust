@@ -2,10 +2,10 @@
   "name": "saastrust-node",
   "version": "1.0.0",
   "description": "SaaSTrust - Authentic B2B Reviews Platform",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "node app.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": ["saas", "reviews", "b2b"],
   "author": "SaaSTrust",
