@@ -8,15 +8,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
   <!-- Header -->
   <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
-        <span class="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">Admin</span>
+        <span class="px-2 py-1 bg-black text-white text-xs font-medium rounded-full">Admin</span>
       </div>
       <div class="flex items-center gap-4">
         <span class="text-sm text-slate-500">admin@saastrust.net</span>
@@ -27,118 +31,492 @@
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-8">
-    <!-- Pending Approvals Section -->
-    <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-slate-900">Pending Approvals</h2>
-        <button onclick="loadPending()" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-          Refresh
-        </button>
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Metric Cards Dashboard Grid -->
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-slate-500">Total Revenue</span>
+          <span class="text-2xl">💰</span>
+        </div>
+        <p class="text-3xl font-bold text-slate-900" id="totalRevenue">$0</p>
       </div>
       
-      <div id="pendingList" class="space-y-4">
-        <div class="text-center py-12 text-slate-400">
-          <p>No pending approvals.</p>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-slate-500">Net Profit</span>
+          <span class="text-2xl">📈</span>
         </div>
+        <p class="text-3xl font-bold text-slate-900" id="netProfit">$0</p>
+      </div>
+      
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-slate-500">Pending Payments</span>
+          <span class="text-2xl">⏳</span>
+        </div>
+        <p class="text-3xl font-bold text-slate-900" id="pendingPayments">0</p>
+      </div>
+      
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-slate-500">Pending Proofs</span>
+          <span class="text-2xl">📋</span>
+        </div>
+        <p class="text-3xl font-bold text-slate-900" id="pendingProofs">0</p>
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-3 gap-4 mt-8">
-      <div class="bg-white rounded-xl p-6 border border-slate-100">
-        <h3 class="text-sm font-medium text-slate-500 mb-2">Total Clients</h3>
-        <p class="text-2xl font-bold text-slate-900" id="clientCount">0</p>
+    <!-- Tabbed Workflow Hub -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8">
+      <div class="border-b border-slate-100">
+        <div class="flex gap-1 px-6">
+          <button onclick="switchTab('pendingPayments')" id="tab-pendingPayments" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
+            Pending Payments
+          </button>
+          <button onclick="switchTab('pendingProofs')" id="tab-pendingProofs" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
+            Pending Proofs
+          </button>
+          <button onclick="switchTab('users')" id="tab-users" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
+            Users Directory
+          </button>
+        </div>
       </div>
-      <div class="bg-white rounded-xl p-6 border border-slate-100">
-        <h3 class="text-sm font-medium text-slate-500 mb-2">Total Reviewers</h3>
-        <p class="text-2xl font-bold text-slate-900" id="testerCount">0</p>
+
+      <!-- Pending Payments Tab -->
+      <div id="content-pendingPayments" class="p-6 hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-slate-900">Pending Payments</h2>
+          <button onclick="loadPendingPayments()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+            Refresh
+          </button>
+        </div>
+        
+        <div id="pendingPaymentsList" class="space-y-4">
+          <div class="text-center py-12 text-slate-400">
+            <p>No pending payments.</p>
+          </div>
+        </div>
       </div>
-      <div class="bg-white rounded-xl p-6 border border-slate-100">
-        <h3 class="text-sm font-medium text-slate-500 mb-2">Active Campaigns</h3>
-        <p class="text-2xl font-bold text-slate-900" id="campaignCount">0</p>
+
+      <!-- Pending Proofs Tab -->
+      <div id="content-pendingProofs" class="p-6 hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-slate-900">Pending Proofs</h2>
+          <button onclick="loadPendingProofs()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+            Refresh
+          </button>
+        </div>
+        
+        <div id="pendingProofsList" class="space-y-4">
+          <div class="text-center py-12 text-slate-400">
+            <p>No pending proofs.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Directory Tab -->
+      <div id="content-users" class="p-6 hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-slate-900">Users Directory</h2>
+          <div class="flex items-center gap-3">
+            <input type="text" id="userSearch" placeholder="Search users..." class="px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900">
+            <button onclick="loadUsers()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+              Search
+            </button>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-slate-100">
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">ID</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">Email</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">Role</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">Industry</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">LinkedIn</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">Created</th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-slate-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="7" class="text-center py-12 text-slate-400">
+                  <p>No users found.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
 
+  <!-- Image Modal -->
+  <div id="imageModal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeImageModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+      <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white text-2xl hover:text-slate-200">✕</button>
+      <img id="modalImage" src="" alt="Proof" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl">
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="editUserModal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeEditUserModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Edit User</h3>
+        <form id="editUserForm" onsubmit="saveUser(event)">
+          <input type="hidden" id="editUserId">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <input type="email" id="editUserEmail" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+              <select id="editUserRole" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
+                <option value="employer">Employer</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Industry</label>
+              <input type="text" id="editUserIndustry" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile</label>
+              <input type="text" id="editUserLinkedin" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900">
+            </div>
+          </div>
+          <div class="flex gap-3 mt-6">
+            <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-black hover:bg-slate-800 rounded-xl transition-all">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Load pending approvals
-    async function loadPending() {
-      const response = await fetch('/api/admin/pending');
+    // Tab switching
+    function switchTab(tabName) {
+      // Hide all content
+      document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+      // Remove active state from all tabs
+      document.querySelectorAll('[id^="tab-"]').forEach(el => {
+        el.classList.remove('text-slate-900', 'border-slate-900');
+        el.classList.add('text-slate-600', 'border-transparent');
+      });
+      
+      // Show selected content
+      document.getElementById(`content-${tabName}`).classList.remove('hidden');
+      // Activate selected tab
+      const activeTab = document.getElementById(`tab-${tabName}`);
+      activeTab.classList.remove('text-slate-600', 'border-transparent');
+      activeTab.classList.add('text-slate-900', 'border-slate-900');
+      
+      // Load data for the tab
+      if (tabName === 'pendingPayments') loadPendingPayments();
+      else if (tabName === 'pendingProofs') loadPendingProofs();
+      else if (tabName === 'users') loadUsers();
+    }
+
+    // Load dashboard data
+    async function loadDashboardData() {
+      const response = await fetch('/admin/dashboard-data');
       if (response.ok) {
-        const pending = await response.json();
-        renderPending(pending);
+        const data = await response.json();
+        document.getElementById('totalRevenue').textContent = `$${data.total_revenue.toFixed(2)}`;
+        document.getElementById('netProfit').textContent = `$${data.net_profit.toFixed(2)}`;
+        document.getElementById('pendingPayments').textContent = data.pending_payments_count;
+        document.getElementById('pendingProofs').textContent = data.pending_proofs_count;
       } else {
         window.location.href = '/login.html';
       }
     }
 
-    // Render pending approvals
-    function renderPending(pending) {
-      const container = document.getElementById('pendingList');
+    // Load pending payments
+    async function loadPendingPayments() {
+      const response = await fetch('/admin/pending-payments');
+      if (response.ok) {
+        const campaigns = await response.json();
+        renderPendingPayments(campaigns);
+      }
+    }
+
+    function renderPendingPayments(campaigns) {
+      const container = document.getElementById('pendingPaymentsList');
       
-      if (pending.length === 0) {
+      if (campaigns.length === 0) {
         container.innerHTML = `
           <div class="text-center py-12 text-slate-400">
-            <p>No pending approvals.</p>
+            <p>No pending payments.</p>
           </div>
         `;
         return;
       }
       
-      container.innerHTML = pending.map(item => `
+      container.innerHTML = campaigns.map(campaign => `
         <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
           <div class="flex items-start justify-between mb-4">
             <div>
-              <h3 class="font-semibold text-slate-900">${item.product_name}</h3>
+              <h3 class="font-semibold text-slate-900">${campaign.product_name}</h3>
               <div class="flex items-center gap-3 mt-1">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${item.target_site}</span>
-                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${item.tester_email}</span>
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${campaign.platform}</span>
+                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">${campaign.industry}</span>
               </div>
+            </div>
+            <div class="text-right">
+              <p class="text-lg font-bold text-slate-900">$${campaign.budget_usd.toFixed(2)}</p>
+              <p class="text-sm text-slate-500">${campaign.employer_email}</p>
             </div>
           </div>
           
-          ${item.proof_url ? `
-            <div class="mb-4">
-              <p class="text-sm text-slate-500 mb-2">Proof URL:</p>
-              <a href="${item.proof_url}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm break-all">${item.proof_url}</a>
-            </div>
-          ` : ''}
-          
           <div class="flex items-center justify-between">
-            <p class="text-sm text-slate-500">Awaiting review</p>
-            <button onclick="approve(${item.id})" class="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all shadow-lg shadow-green-500/20">
-              Approve
+            <a href="${campaign.product_url}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm">${campaign.product_url}</a>
+            <button onclick="confirmPayment(${campaign.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-lg">
+              ✓ Confirm Gumroad Paid
             </button>
           </div>
         </div>
       `).join('');
     }
 
-    // Approve application
-    async function approve(applicationId) {
-      const response = await fetch('/api/admin/approve', {
+    async function confirmPayment(campaignId) {
+      if (!confirm('Are you sure you want to confirm this payment?')) return;
+      
+      const response = await fetch(`/admin/campaigns/${campaignId}/confirm-payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ application_id: applicationId })
+        headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.ok) {
-        alert('Application approved!');
-        loadPending();
+        alert('Payment confirmed! Campaign is now active.');
+        loadPendingPayments();
+        loadDashboardData();
       } else {
-        alert('Failed to approve');
+        alert('Failed to confirm payment');
+      }
+    }
+
+    // Load pending proofs
+    async function loadPendingProofs() {
+      const response = await fetch('/admin/pending-proofs');
+      if (response.ok) {
+        const applications = await response.json();
+        renderPendingProofs(applications);
+      }
+    }
+
+    function renderPendingProofs(applications) {
+      const container = document.getElementById('pendingProofsList');
+      
+      if (applications.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <p>No pending proofs.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = applications.map(app => `
+        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="font-semibold text-slate-900">${app.product_name}</h3>
+              <div class="flex items-center gap-3 mt-1">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${app.platform}</span>
+                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${app.reviewer_email}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <p class="text-sm text-slate-500 mb-2">Proof Screenshot:</p>
+            <div class="flex items-center gap-3">
+              <img src="${app.screenshot_url}" alt="Proof" class="w-20 h-20 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80" onclick="openImageModal('${app.screenshot_url}')">
+              <button onclick="openImageModal('${app.screenshot_url}')" class="text-blue-600 hover:text-blue-700 text-sm font-medium">View Full Size</button>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <input type="text" id="giftCard-${app.id}" placeholder="Enter Amazon Code" class="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900">
+            <button onclick="verifyAndPay(${app.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-lg">
+              Verify & Release Payout
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openImageModal(imageUrl) {
+      document.getElementById('modalImage').src = imageUrl;
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+    }
+
+    async function verifyAndPay(applicationId) {
+      const giftCardCode = document.getElementById(`giftCard-${applicationId}`).value.trim();
+      
+      if (!giftCardCode) {
+        alert('Please enter the Amazon gift card code');
+        return;
+      }
+      
+      if (!confirm('Are you sure you want to verify this proof and release the payout?')) return;
+      
+      const response = await fetch(`/admin/applications/${applicationId}/verify-and-pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gift_card_code: giftCardCode })
+      });
+      
+      if (response.ok) {
+        alert('Proof verified and gift card sent successfully!');
+        loadPendingProofs();
+        loadDashboardData();
+      } else {
+        alert('Failed to verify and pay');
+      }
+    }
+
+    // Load users
+    async function loadUsers() {
+      const search = document.getElementById('userSearch').value;
+      const url = search ? `/admin/users?search=${encodeURIComponent(search)}` : '/admin/users';
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const users = await response.json();
+        renderUsers(users);
+      }
+    }
+
+    function renderUsers(users) {
+      const tbody = document.getElementById('usersTableBody');
+      
+      if (users.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-12 text-slate-400">
+              <p>No users found.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = users.map(user => `
+        <tr class="border-b border-slate-50 hover:bg-slate-50">
+          <td class="py-3 px-4 text-sm text-slate-900">${user.id}</td>
+          <td class="py-3 px-4 text-sm text-slate-900">${user.email}</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 text-xs font-medium rounded-full ${
+              user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+              user.role === 'employer' ? 'bg-blue-100 text-blue-700' :
+              'bg-green-100 text-green-700'
+            }">${user.role}</span>
+          </td>
+          <td class="py-3 px-4 text-sm text-slate-900">${user.industry}</td>
+          <td class="py-3 px-4">
+            ${user.linkedin_profile ? `<a href="${user.linkedin_profile}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm">View</a>` : '<span class="text-slate-400 text-sm">N/A</span>'}
+          </td>
+          <td class="py-3 px-4 text-sm text-slate-500">${new Date(user.created_at).toLocaleDateString()}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-2">
+              <button onclick="editUser(${user.id})" class="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" title="Edit Industry">
+                🔧
+              </button>
+              <button onclick="deleteUser(${user.id})" class="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all" title="Terminate User">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function editUser(userId) {
+      // Find user data (in real app, fetch from API)
+      const users = document.querySelectorAll('#usersTableBody tr');
+      users.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells[0].textContent.trim() === userId.toString()) {
+          document.getElementById('editUserId').value = userId;
+          document.getElementById('editUserEmail').value = cells[1].textContent.trim();
+          document.getElementById('editUserRole').value = cells[2].querySelector('span').textContent.trim().toLowerCase();
+          document.getElementById('editUserIndustry').value = cells[3].textContent.trim();
+          document.getElementById('editUserModal').classList.remove('hidden');
+        }
+      });
+    }
+
+    function closeEditUserModal() {
+      document.getElementById('editUserModal').classList.add('hidden');
+    }
+
+    async function saveUser(event) {
+      event.preventDefault();
+      
+      const userId = document.getElementById('editUserId').value;
+      const userData = {
+        email: document.getElementById('editUserEmail').value,
+        role: document.getElementById('editUserRole').value,
+        industry: document.getElementById('editUserIndustry').value,
+        linkedin_profile: document.getElementById('editUserLinkedin').value
+      };
+      
+      const response = await fetch(`/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      
+      if (response.ok) {
+        alert('User updated successfully!');
+        closeEditUserModal();
+        loadUsers();
+      } else {
+        alert('Failed to update user');
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+      
+      const response = await fetch(`/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        alert('User deleted successfully!');
+        loadUsers();
+      } else {
+        alert('Failed to delete user');
       }
     }
 
     // Logout
     async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/login.html';
     }
 
     // Initialize
-    loadPending();
+    loadDashboardData();
+    switchTab('pendingPayments');
   </script>
 </body>
 </html>
