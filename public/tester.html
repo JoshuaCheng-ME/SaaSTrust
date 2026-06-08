@@ -93,7 +93,7 @@
   <div id="uploadModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-bold text-slate-900 mb-4">Upload Proof Screenshot</h3>
-      <input type="text" id="proofUrl" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4" placeholder="Enter screenshot URL">
+      <input type="file" id="proofFile" accept="image/*" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
       <div class="flex gap-3">
         <button onclick="closeModal()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl">
           Cancel
@@ -291,26 +291,27 @@
     // Close modal
     function closeModal() {
       document.getElementById('uploadModal').classList.add('hidden');
-      document.getElementById('proofUrl').value = '';
+      document.getElementById('proofFile').value = '';
       currentApplicationId = null;
     }
 
     // Submit proof
     async function submitProof() {
-      const proofUrl = document.getElementById('proofUrl').value;
+      const fileInput = document.getElementById('proofFile');
+      const file = fileInput.files[0];
       
-      if (!proofUrl) {
-        alert('Please enter a screenshot URL');
+      if (!file) {
+        alert('Please select a screenshot file');
         return;
       }
       
+      const formData = new FormData();
+      formData.append('application_id', currentApplicationId);
+      formData.append('screenshot', file);
+      
       const response = await fetch('/api/tester/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          application_id: currentApplicationId,
-          proof_url: proofUrl
-        })
+        body: formData
       });
       
       if (response.ok) {
