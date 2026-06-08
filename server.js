@@ -40,8 +40,18 @@ const upload = multer({
   }
 });
 
-// 数据库连接
-const db = new sqlite3.Database('./database.sqlite');
+// 数据库连接 - 存放在项目外部，避免 git reset 丢失数据
+// 默认使用项目父目录的 database.sqlite
+// 可通过环境变量 DATABASE_PATH 自定义路径
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '..', '..', 'saastrust_data', 'database.sqlite');
+const db = new sqlite3.Database(dbPath);
+
+// 确保数据库目录存在（仅在首次创建时）
+const fs = require('fs');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 // 初始化数据库表
 function initDB() {
