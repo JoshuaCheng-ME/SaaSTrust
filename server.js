@@ -1,10 +1,12 @@
 const express = require('express');
 const session = require('express-session');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const { Resend } = require('resend');
+
+// 引入 MySQL 数据库连接
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,81 +42,68 @@ const upload = multer({
   }
 });
 
-// 数据库连接 - 存放在项目外部，避免 git reset 丢失数据
-// 默认使用项目父目录的 database.sqlite
-// 可通过环境变量 DATABASE_PATH 自定义路径
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '..', '..', 'saastrust_data', 'database.sqlite');
-const db = new sqlite3.Database(dbPath);
-
-// 确保数据库目录存在（仅在首次创建时）
-const fs = require('fs');
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
 // 初始化数据库表
-function initDB() {
-  // Users table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL,
-      linkedin_profile TEXT,
-      industry TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  // Campaigns table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS campaigns (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employer_id INTEGER NOT NULL,
-      platform TEXT,
-      product_name TEXT NOT NULL,
-      product_url TEXT,
-      industry TEXT NOT NULL,
-      budget_usd REAL,
-      total_slots INTEGER,
-      status TEXT DEFAULT 'pending_payment',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (employer_id) REFERENCES users(id)
-    )
-  `);
-  
-  // Applications table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS applications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      reviewer_id INTEGER NOT NULL,
-      campaign_id INTEGER NOT NULL,
-      status TEXT DEFAULT 'pending',
-      screenshot_url TEXT,
-      gift_card_code TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (reviewer_id) REFERENCES users(id),
-      FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
-    )
-  `);
-  
-  // Create admin user if not exists
-  db.get('SELECT id FROM users WHERE email = ?', ['admin@saastrust.net'], (err, row) => {
-    if (!row) {
-      const hashedPassword = bcrypt.hashSync('admin123', 10);
-      db.run('INSERT INTO users (email, password, role, industry) VALUES (?, ?, ?, ?)',
-        ['admin@saastrust.net', hashedPassword, 'admin', 'Admin'], (err) => {
-          if (!err) {
-            console.log('Admin user created: admin@saastrust.net / admin123');
-          }
-        });
-    }
-  });
-}
+async function initDB() {
+  try {
+    // Users table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        linkedin_profile TEXT,
+        industry VARCHAR(100) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    
+    // Campaigns table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS campaigns (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        employer_id INTEGER NOT NULL,
+        platform VARCHAR(100),
+        product_name VARCHAR(255) NOT NULL,
+        product_url TEXT,
+        industry VARCHAR(100) NOT NULL,
+        budget_usd DECIMAL(10,2),
+        total_slots INTEGER,
+        status VARCHAR(50) DEFAULT 'pending_payment',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employer_id) REFERENCES users(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    
+    // Applications table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS applications (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        reviewer_id INTEGER NOT NULL,
+        campaign_id INTEGER NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        screenshot_url TEXT,
+        gift_card_code VARCHAR(100),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (reviewer_id) REFERENCES users(id),
+        FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
 
-initDB();
+    // Create admin user if not exists
+    const [adminRows] = await db.execute('SELECT id FROM users WHERE email = ?', ['admin@saastrust.net']);
+    if (adminRows.length === 0) {
+      const hashedPassword = bcrypt.hashSync('admin123', 10);
+      await db.execute('INSERT INTO users (email, password, role, industry) VALUES (?, ?, ?, ?)',
+        ['admin@saastrust.net', hashedPassword, 'admin', 'Admin']);
+      console.log('Admin user created: admin@saastrust.net / admin123');
+    }
+
+    console.log('Database initialized successfully');
+  } catch (err) {
+    console.error('Database initialization failed:', err);
+  }
+}
 
 // 中间件配置
 app.use(express.json());
@@ -129,8 +118,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!require('fs').existsSync(uploadDir)) {
-  require('fs').mkdirSync(uploadDir, { recursive: true });
+const fs = require('fs');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // 认证中间件
@@ -150,6 +140,22 @@ function requireRole(role) {
   };
 }
 
+// 发送礼品卡邮件
+async function sendGiftCardEmail(email, giftCardCode, productName) {
+  try {
+    await resend.emails.send({
+      from: 'SaaSTrust <no-reply@saastrust.net>',
+      to: email,
+      subject: 'Your Amazon Gift Card - SaaSTrust Review Reward',
+      html: `<p>Thank you for reviewing ${productName}!</p><p>Your Amazon gift card code: <strong>${giftCardCode}</strong></p>`
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to send email:', err);
+    return false;
+  }
+}
+
 // 🔓 Public & General Routes
 
 // 首页
@@ -158,7 +164,7 @@ app.get('/', (req, res) => {
 });
 
 // 用户注册
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const { email, password, role, linkedin_profile, industry } = req.body;
   
   if (!email || !password || !role || !industry || !linkedin_profile) {
@@ -171,36 +177,37 @@ app.post('/api/register', (req, res) => {
   
   const hashedPassword = bcrypt.hashSync(password, 10);
   
-  db.run(`INSERT INTO users (email, password, role, linkedin_profile, industry) VALUES (?, ?, ?, ?, ?)`,
-    [email, hashedPassword, role, linkedin_profile, industry], (err) => {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
-          return res.status(400).json({ error: 'Email already exists' });
-        }
-        return res.status(500).json({ error: 'Registration failed' });
-      }
-      res.status(201).json({ message: 'Registration successful', role });
-    });
+  try {
+    await db.execute(`INSERT INTO users (email, password, role, linkedin_profile, industry) VALUES (?, ?, ?, ?, ?)`,
+      [email, hashedPassword, role, linkedin_profile, industry]);
+    res.status(201).json({ message: 'Registration successful', role });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    return res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
 // 用户登录
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   
-  db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
-    if (!user || !bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    req.session.user = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      industry: user.industry
-    };
-    
-    res.json({ message: 'Login successful', role: user.role });
-  });
+  const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+  
+  if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  const user = users[0];
+  req.session.user = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    industry: user.industry
+  };
+  
+  res.json({ message: 'Login successful', role: user.role });
 });
 
 // 登出
@@ -217,56 +224,51 @@ app.get('/api/auth/user', requireAuth, (req, res) => {
 // 🏢 Employer (B-End) Operations
 
 // 创建新活动
-app.post('/api/client/campaign', requireAuth, requireRole('employer'), (req, res) => {
+app.post('/api/client/campaign', requireAuth, requireRole('employer'), async (req, res) => {
   const { product_name, target_site, req_industry, total_slots } = req.body;
   
   if (!product_name || !target_site || !req_industry || !total_slots) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   
-  db.run(`INSERT INTO campaigns (employer_id, platform, product_name, industry, total_slots) VALUES (?, ?, ?, ?, ?)`,
-    [req.session.user.id, target_site, product_name, req_industry, total_slots], function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to create campaign' });
-      }
-      
-      // 返回 Gumroad 支付链接（示例）
-      const gumroadLink = `https://saastrust.gumroad.com/l/campaign-${this.lastID}`;
-      res.json({ 
-        message: 'Campaign created successfully', 
-        campaign_id: this.lastID,
-        status: 'pending_payment',
-        payment_link: gumroadLink
-      });
+  try {
+    const [result] = await db.execute(`INSERT INTO campaigns (employer_id, platform, product_name, industry, total_slots) VALUES (?, ?, ?, ?, ?)`,
+      [req.session.user.id, target_site, product_name, req_industry, total_slots]);
+    
+    const gumroadLink = `https://saastrust.gumroad.com/l/campaign-${result.insertId}`;
+    res.json({ 
+      message: 'Campaign created successfully', 
+      campaign_id: result.insertId,
+      status: 'pending_payment',
+      payment_link: gumroadLink
     });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create campaign' });
+  }
 });
 
 // 雇主确认已汇款
-app.post('/api/client/campaign/:id/wire-confirm', requireAuth, requireRole('employer'), (req, res) => {
+app.post('/api/client/campaign/:id/wire-confirm', requireAuth, requireRole('employer'), async (req, res) => {
   const campaignId = parseInt(req.params.id);
   const employerId = req.session.user.id;
   
   // 验证活动属于当前雇主
-  db.get(`SELECT * FROM campaigns WHERE id = ? AND employer_id = ?`, [campaignId, employerId], (err, campaign) => {
-    if (err || !campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
-    }
-    
-    // 更新状态为 pending_payment
-    db.run(`UPDATE campaigns SET status = 'pending_payment' WHERE id = ?`, [campaignId], function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update campaign' });
-      }
-      res.json({ message: 'Notification sent to Admin. Awaiting verification.' });
-    });
-  });
+  const [campaigns] = await db.execute(`SELECT * FROM campaigns WHERE id = ? AND employer_id = ?`, [campaignId, employerId]);
+  
+  if (campaigns.length === 0) {
+    return res.status(404).json({ error: 'Campaign not found' });
+  }
+  
+  // 更新状态为 pending_payment
+  await db.execute(`UPDATE campaigns SET status = 'pending_payment' WHERE id = ?`, [campaignId]);
+  res.json({ message: 'Notification sent to Admin. Awaiting verification.' });
 });
 
 // 获取我的活动
-app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), (req, res) => {
+app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), async (req, res) => {
   const employerId = req.session.user.id;
   
-  db.all(`
+  const [campaigns] = await db.execute(`
     SELECT c.*,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'submitted' THEN 1 ELSE 0 END) as pending_proofs,
@@ -276,21 +278,18 @@ app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), (req, res) 
     WHERE c.employer_id = ?
     GROUP BY c.id
     ORDER BY c.id DESC
-  `, [employerId], (err, campaigns) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch campaigns' });
-    }
-    res.json(campaigns);
-  });
+  `, [employerId]);
+  
+  res.json(campaigns);
 });
 
 // 👩‍💻 Reviewer (A-End) Smart-Matching
 
 // 智能匹配任务
-app.get('/api/tester/matched', requireAuth, requireRole('reviewer'), (req, res) => {
+app.get('/api/tester/matched', requireAuth, requireRole('reviewer'), async (req, res) => {
   const reviewerIndustry = req.session.user.industry;
   
-  db.all(`
+  const [campaigns] = await db.execute(`
     SELECT c.*,
            COUNT(a.id) as current_applications
     FROM campaigns c
@@ -298,37 +297,31 @@ app.get('/api/tester/matched', requireAuth, requireRole('reviewer'), (req, res) 
     WHERE c.industry = ? AND c.status = 'active'
     GROUP BY c.id
     ORDER BY c.id DESC
-  `, [reviewerIndustry], (err, campaigns) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch recommendations' });
-    }
-    res.json(campaigns);
-  });
+  `, [reviewerIndustry]);
+  
+  res.json(campaigns);
 });
 
 // 申请任务
-app.post('/api/tester/apply', requireAuth, requireRole('reviewer'), (req, res) => {
+app.post('/api/tester/apply', requireAuth, requireRole('reviewer'), async (req, res) => {
   const { campaign_id } = req.body;
   
   // 检查是否已申请过此任务
-  db.get(`SELECT id FROM applications WHERE campaign_id = ? AND reviewer_id = ?`,
-    [campaign_id, req.session.user.id], (err, row) => {
-      if (row) {
-        return res.status(400).json({ error: 'You have already applied for this campaign' });
-      }
-      
-      db.run(`INSERT INTO applications (reviewer_id, campaign_id, status) VALUES (?, ?, 'pending')`,
-        [req.session.user.id, campaign_id], function(err) {
-          if (err) {
-            return res.status(500).json({ error: 'Failed to apply' });
-          }
-          res.json({ message: 'Application submitted successfully', application_id: this.lastID });
-        });
-    });
+  const [existing] = await db.execute(`SELECT id FROM applications WHERE campaign_id = ? AND reviewer_id = ?`,
+    [campaign_id, req.session.user.id]);
+  
+  if (existing.length > 0) {
+    return res.status(400).json({ error: 'You have already applied for this campaign' });
+  }
+  
+  const [result] = await db.execute(`INSERT INTO applications (reviewer_id, campaign_id, status) VALUES (?, ?, 'pending')`,
+    [req.session.user.id, campaign_id]);
+  
+  res.json({ message: 'Application submitted successfully', application_id: result.insertId });
 });
 
 // 提交证明
-app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.single('screenshot'), (req, res) => {
+app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.single('screenshot'), async (req, res) => {
   const { application_id } = req.body;
   
   if (!req.file) {
@@ -337,106 +330,88 @@ app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.sing
   
   const screenshotUrl = `/uploads/${req.file.filename}`;
   
-  db.run(`UPDATE applications SET status = 'submitted', screenshot_url = ? WHERE id = ? AND reviewer_id = ?`,
-    [screenshotUrl, application_id, req.session.user.id], function(err) {
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Application not found or not authorized' });
-      }
-      res.json({ message: 'Proof submitted successfully, waiting for review' });
-    });
+  const [result] = await db.execute(`UPDATE applications SET status = 'submitted', screenshot_url = ? WHERE id = ? AND reviewer_id = ?`,
+    [screenshotUrl, application_id, req.session.user.id]);
+  
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'Application not found or not authorized' });
+  }
+  res.json({ message: 'Proof submitted successfully, waiting for review' });
 });
 
 // 获取我的申请
-app.get('/api/tester/my-applications', requireAuth, requireRole('reviewer'), (req, res) => {
+app.get('/api/tester/my-applications', requireAuth, requireRole('reviewer'), async (req, res) => {
   const reviewerId = req.session.user.id;
   
-  db.all(`
+  const [applications] = await db.execute(`
     SELECT a.*, c.product_name, c.platform, c.industry, c.budget_usd
     FROM applications a
     JOIN campaigns c ON a.campaign_id = c.id
     WHERE a.reviewer_id = ?
     ORDER BY a.id DESC
-  `, [reviewerId], (err, applications) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch applications' });
-    }
-    res.json(applications);
-  });
+  `, [reviewerId]);
+  
+  res.json(applications);
 });
 
 // 获取账户余额
-app.get('/api/tester/balance', requireAuth, requireRole('reviewer'), (req, res) => {
+app.get('/api/tester/balance', requireAuth, requireRole('reviewer'), async (req, res) => {
   const reviewerId = req.session.user.id;
   
-  // 计算已支付申请的总额（假设每单 20 美元）
-  db.get(`SELECT COUNT(*) as paid_count FROM applications WHERE reviewer_id = ? AND status = 'paid'`,
-    [reviewerId], (err, result) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to fetch balance' });
-      }
-      
-      const balance = (result.paid_count || 0) * 20;
-      res.json({ balance: balance, paid_count: result.paid_count || 0 });
-    });
+  const [balance] = await db.execute(`
+    SELECT COUNT(*) as completed_count, COALESCE(SUM(c.budget_usd / c.total_slots), 0) as total_earned
+    FROM applications a
+    JOIN campaigns c ON a.campaign_id = c.id
+    WHERE a.reviewer_id = ? AND a.status = 'paid'
+  `, [reviewerId]);
+  
+  res.json({
+    completed_tasks: balance[0].completed_count,
+    total_earned: balance[0].total_earned || 0
+  });
 });
 
-// 👑 Admin Control Hub
+// 🛡️ Admin Dashboard
 
 // 获取仪表板数据
-app.get('/admin/dashboard-data', requireAuth, requireRole('admin'), (req, res) => {
-  // 总收入（已支付的活动预算）
-  db.get(`SELECT SUM(budget_usd) as total_revenue FROM campaigns WHERE status != 'pending_payment'`, (err, revenue) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch revenue data' });
-    }
-    
-    // 已支付总额（已支付的申请数量 * 假设每单20美元）
-    db.get(`SELECT COUNT(*) as paid_count FROM applications WHERE status = 'paid'`, (err, paid) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to fetch paid data' });
-      }
-      
-      const totalPayouts = paid.paid_count * 20;
-      const netProfit = (revenue.total_revenue || 0) - totalPayouts;
-      
-      // 待支付活动数量
-      db.get(`SELECT COUNT(*) as pending_payments FROM campaigns WHERE status = 'pending_payment'`, (err, pendingPayments) => {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to fetch pending payments' });
-        }
-        
-        // 待审核证明数量
-        db.get(`SELECT COUNT(*) as pending_proofs FROM applications WHERE status = 'submitted'`, (err, pendingProofs) => {
-          if (err) {
-            return res.status(500).json({ error: 'Failed to fetch pending proofs' });
-          }
-          
-          res.json({
-            total_revenue: revenue.total_revenue || 0,
-            net_profit: netProfit,
-            pending_payments_count: pendingPayments.pending_payments,
-            pending_proofs_count: pendingProofs.pending_proofs
-          });
-        });
-      });
-    });
+app.get('/admin/dashboard-data', requireAuth, requireRole('admin'), async (req, res) => {
+  // 总收入
+  const [revenue] = await db.execute(`SELECT COALESCE(SUM(budget_usd), 0) as total_revenue FROM campaigns WHERE status != 'pending_payment'`);
+  
+  // 已支付数量
+  const [paid] = await db.execute(`SELECT COUNT(*) as paid_count FROM applications WHERE status = 'paid'`);
+  
+  const totalPayouts = paid[0].paid_count * 20;
+  const netProfit = (revenue[0].total_revenue || 0) - totalPayouts;
+  
+  // 待支付活动数量
+  const [pendingPayments] = await db.execute(`SELECT COUNT(*) as pending_count FROM campaigns WHERE status = 'pending_payment'`);
+  
+  // 待审核数量
+  const [pendingProofs] = await db.execute(`SELECT COUNT(*) as pending_count FROM applications WHERE status = 'submitted'`);
+  
+  res.json({
+    total_revenue: revenue[0].total_revenue || 0,
+    net_profit: netProfit,
+    pending_payments_count: pendingPayments[0].pending_count,
+    pending_proofs_count: pendingProofs[0].pending_count
   });
 });
 
 // 确认支付
-app.post('/admin/campaigns/:id/confirm-payment', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/admin/campaigns/:id/confirm-payment', requireAuth, requireRole('admin'), async (req, res) => {
   const campaignId = parseInt(req.params.id);
   
-  db.run(`UPDATE campaigns SET status = 'active' WHERE id = ?`, [campaignId], function(err) {
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Campaign not found' });
-    }
-    res.json({ message: 'Payment confirmed, campaign is now active' });
-  });
+  const [result] = await db.execute(`UPDATE campaigns SET status = 'active' WHERE id = ?`, [campaignId]);
+  
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'Campaign not found' });
+  }
+  res.json({ message: 'Payment confirmed, campaign is now active' });
 });
 
 // 验证并支付
-app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('admin'), async (req, res) => {
   const applicationId = parseInt(req.params.id);
   const { gift_card_code } = req.body;
   
@@ -445,171 +420,108 @@ app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('adm
   }
   
   // 获取申请信息
-  db.get(`
+  const [applications] = await db.execute(`
     SELECT a.*, u.email as reviewer_email, c.product_name 
     FROM applications a
     JOIN users u ON a.reviewer_id = u.id
     JOIN campaigns c ON a.campaign_id = c.id
     WHERE a.id = ?
-  `, [applicationId], (err, application) => {
-    if (err || !application) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
-    
-    // 更新申请状态
-    db.run(`UPDATE applications SET status = 'paid', gift_card_code = ? WHERE id = ?`,
-      [gift_card_code, applicationId], function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to update application' });
-        }
-        
-        // 发送邮件
-        sendGiftCardEmail(application.reviewer_email, gift_card_code, application.product_name)
-          .then(() => {
-            res.json({ message: 'Application verified and gift card sent successfully' });
-          })
-          .catch((emailError) => {
-            console.error('Failed to send email:', emailError);
-            res.status(500).json({ error: 'Failed to send gift card email' });
-          });
-      });
-  });
+  `, [applicationId]);
+  
+  if (applications.length === 0) {
+    return res.status(404).json({ error: 'Application not found' });
+  }
+  
+  const application = applications[0];
+  
+  // 更新申请状态
+  await db.execute(`UPDATE applications SET status = 'paid', gift_card_code = ? WHERE id = ?`,
+    [gift_card_code, applicationId]);
+  
+  // 发送邮件
+  await sendGiftCardEmail(application.reviewer_email, gift_card_code, application.product_name);
+  
+  res.json({ message: 'Payment processed and email sent' });
 });
 
-// 发送礼品卡邮件
-async function sendGiftCardEmail(toEmail, giftCardCode, productName) {
-  try {
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Payment Received!</h1>
-        </div>
-        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <p style="color: #333; line-height: 1.6;">Hi there,</p>
-          <p style="color: #333; line-height: 1.6;">Great news! Your review for <strong>${productName}</strong> has been verified and approved.</p>
-          <p style="color: #333; line-height: 1.6;">Here's your $20 Amazon Gift Card code:</p>
-          <div style="background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-            <span style="font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 2px;">${giftCardCode}</span>
-          </div>
-          <p style="color: #333; line-height: 1.6;">Thank you for your valuable contribution to the SaaSTrust community!</p>
-          <p style="color: #666; font-size: 14px; margin-top: 30px;">Best regards,<br>The SaaSTrust Team</p>
-        </div>
-      </div>
-    `;
-    
-    await resend.emails.send({
-      from: 'SaaSTrust <noreply@saastrust.net>',
-      to: toEmail,
-      subject: 'Your Gift Card is Here! 🎁',
-      html: emailContent
-    });
-    
-    console.log(`Gift card email sent to ${toEmail}`);
-  } catch (error) {
-    console.error('Failed to send email:', error);
-    throw error;
-  }
-}
-
 // 获取待支付活动
-app.get('/admin/pending-payments', requireAuth, requireRole('admin'), (req, res) => {
-  db.all(`
+app.get('/admin/pending-payments', requireAuth, requireRole('admin'), async (req, res) => {
+  const [campaigns] = await db.execute(`
     SELECT c.*, u.email as employer_email
     FROM campaigns c
     JOIN users u ON c.employer_id = u.id
     WHERE c.status = 'pending_payment'
     ORDER BY c.id DESC
-  `, (err, campaigns) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch pending payments' });
-    }
-    res.json(campaigns);
-  });
+  `);
+  
+  res.json(campaigns);
 });
 
 // 获取待审核证明
-app.get('/admin/pending-proofs', requireAuth, requireRole('admin'), (req, res) => {
-  db.all(`
+app.get('/admin/pending-proofs', requireAuth, requireRole('admin'), async (req, res) => {
+  const [applications] = await db.execute(`
     SELECT a.*, c.product_name, c.platform, u.email as reviewer_email
     FROM applications a
     JOIN campaigns c ON a.campaign_id = c.id
     JOIN users u ON a.reviewer_id = u.id
     WHERE a.status = 'submitted'
     ORDER BY a.id DESC
-  `, (err, applications) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch pending proofs' });
-    }
-    res.json(applications);
-  });
+  `);
+  
+  res.json(applications);
 });
 
-// 👥 User CRUD Management (Admin Only)
-
-// 获取所有用户
-app.get('/admin/users', requireAuth, requireRole('admin'), (req, res) => {
-  const { search, page = 1, limit = 20 } = req.query;
-  const offset = (page - 1) * limit;
+// 获取用户列表
+app.get('/admin/users', requireAuth, requireRole('admin'), async (req, res) => {
+  const search = req.query.search || '';
   
-  let query = 'SELECT * FROM users WHERE 1=1';
-  const params = [];
+  let query = `SELECT * FROM users ORDER BY id DESC`;
+  let params = [];
   
   if (search) {
-    query += ' AND (email LIKE ? OR industry LIKE ?)';
-    params.push(`%${search}%`, `%${search}%`);
+    query = `SELECT * FROM users WHERE email LIKE ? ORDER BY id DESC`;
+    params = [`%${search}%`];
   }
   
-  query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
-  
-  db.all(query, params, (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch users' });
-    }
-    res.json(users);
-  });
+  const [users] = await db.execute(query, params);
+  res.json(users);
 });
 
 // 更新用户
-app.put('/admin/users/:id', requireAuth, requireRole('admin'), (req, res) => {
+app.put('/admin/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const userId = parseInt(req.params.id);
-  const { email, password, role, linkedin_profile, industry } = req.body;
+  const { email, role, industry, linkedin_profile } = req.body;
   
-  let query = 'UPDATE users SET email = ?, role = ?, linkedin_profile = ?, industry = ?';
-  const params = [email, role, linkedin_profile, industry];
+  const [result] = await db.execute(`UPDATE users SET email = ?, role = ?, industry = ?, linkedin_profile = ? WHERE id = ?`,
+    [email, role, industry, linkedin_profile, userId]);
   
-  if (password) {
-    query += ', password = ?';
-    params.push(bcrypt.hashSync(password, 10));
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'User not found' });
   }
-  
-  query += ' WHERE id = ?';
-  params.push(userId);
-  
-  db.run(query, params, function(err) {
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ message: 'User updated successfully' });
-  });
+  res.json({ message: 'User updated successfully' });
 });
 
 // 删除用户
-app.delete('/admin/users/:id', requireAuth, requireRole('admin'), (req, res) => {
+app.delete('/admin/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const userId = parseInt(req.params.id);
   
-  // SQLite 会自动处理外键约束（如果启用了 PRAGMA foreign_keys = ON）
-  db.run(`DELETE FROM users WHERE id = ?`, [userId], function(err) {
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ message: 'User deleted successfully' });
-  });
+  if (userId === req.session.user.id) {
+    return res.status(400).json({ error: 'Cannot delete your own account' });
+  }
+  
+  const [result] = await db.execute(`DELETE FROM users WHERE id = ?`, [userId]);
+  
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  res.json({ message: 'User deleted successfully' });
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`🚀 SaaSTrust server running on port ${PORT}`);
-  console.log(`📊 Admin Dashboard: http://localhost:${PORT}/admin.html`);
-  console.log(`🏠 Homepage: http://localhost:${PORT}/`);
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`SaaSTrust server running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to initialize database:', err);
 });
