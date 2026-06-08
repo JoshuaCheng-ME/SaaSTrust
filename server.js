@@ -207,14 +207,14 @@ app.get('/api/auth/user', requireAuth, (req, res) => {
 
 // 创建新活动
 app.post('/api/client/campaign', requireAuth, requireRole('employer'), (req, res) => {
-  const { platform, product_name, product_url, industry, budget_usd } = req.body;
+  const { product_name, target_site, req_industry, total_slots } = req.body;
   
-  if (!product_name || !product_url || !industry || !budget_usd) {
+  if (!product_name || !target_site || !req_industry || !total_slots) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   
-  db.run(`INSERT INTO campaigns (employer_id, platform, product_name, product_url, industry, budget_usd) VALUES (?, ?, ?, ?, ?, ?)`,
-    [req.session.user.id, platform || 'G2', product_name, product_url, industry, budget_usd], function(err) {
+  db.run(`INSERT INTO campaigns (employer_id, platform, product_name, industry, total_slots) VALUES (?, ?, ?, ?, ?)`,
+    [req.session.user.id, target_site, product_name, req_industry, total_slots], function(err) {
       if (err) {
         return res.status(500).json({ error: 'Failed to create campaign' });
       }
