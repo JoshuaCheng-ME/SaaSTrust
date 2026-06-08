@@ -28,11 +28,11 @@
           <label class="block text-sm font-medium text-slate-700 mb-2">Account Type</label>
           <div class="grid grid-cols-2 gap-3">
             <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-              <input type="radio" name="role" value="client" class="w-4 h-4 text-blue-600" required>
+              <input type="radio" name="role" value="employer" class="w-4 h-4 text-blue-600" required>
               <span class="ml-3 font-medium text-slate-700">I'm an Employer</span>
             </label>
             <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-              <input type="radio" name="role" value="tester" class="w-4 h-4 text-blue-600" required>
+              <input type="radio" name="role" value="reviewer" class="w-4 h-4 text-blue-600" required>
               <span class="ml-3 font-medium text-slate-700">I'm a Reviewer</span>
             </label>
           </div>
@@ -112,7 +112,7 @@
     document.querySelectorAll('input[name="role"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         const linkedinField = document.getElementById('linkedinField');
-        if (e.target.value === 'tester') {
+        if (e.target.value === 'reviewer') {
           linkedinField.style.display = 'block';
           document.getElementById('linkedin_url').required = true;
         } else {
@@ -131,7 +131,7 @@
       const industry = document.getElementById('industry').value;
       const linkedin_url = document.getElementById('linkedin_url').value;
       
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role, industry, linkedin_url })

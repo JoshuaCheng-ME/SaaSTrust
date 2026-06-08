@@ -50,6 +50,7 @@ function initDB() {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
       role TEXT NOT NULL,
       linkedin_profile TEXT,
       industry TEXT NOT NULL,
@@ -91,10 +92,11 @@ function initDB() {
   // Create admin user if not exists
   db.get('SELECT id FROM users WHERE email = ?', ['admin@saastrust.net'], (err, row) => {
     if (!row) {
-      db.run('INSERT INTO users (email, role, industry) VALUES (?, ?, ?)',
-        ['admin@saastrust.net', 'admin', 'Admin'], (err) => {
+      const hashedPassword = bcrypt.hashSync('admin123', 10);
+      db.run('INSERT INTO users (email, password, role, industry) VALUES (?, ?, ?, ?)',
+        ['admin@saastrust.net', hashedPassword, 'admin', 'Admin'], (err) => {
           if (!err) {
-            console.log('Admin user created: admin@saastrust.net');
+            console.log('Admin user created: admin@saastrust.net / admin123');
           }
         });
     }
@@ -146,9 +148,9 @@ app.get('/', (req, res) => {
 
 // 用户注册
 app.post('/api/register', (req, res) => {
-  const { email, role, linkedin_profile, industry } = req.body;
+  const { email, password, role, linkedin_profile, industry } = req.body;
   
-  if (!email || !role || !industry) {
+  if (!email || !password || !role || !industry) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   
@@ -156,8 +158,10 @@ app.post('/api/register', (req, res) => {
     return res.status(400).json({ error: 'Invalid role' });
   }
   
-  db.run(`INSERT INTO users (email, role, linkedin_profile, industry) VALUES (?, ?, ?, ?)`,
-    [email, role, linkedin_profile || null, industry], (err) => {
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  
+  db.run(`INSERT INTO users (email, password, role, linkedin_profile, industry) VALUES (?, ?, ?, ?, ?)`,
+    [email, hashedPassword, role, linkedin_profile || null, industry], (err) => {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
           return res.status(400).json({ error: 'Email already exists' });
@@ -169,12 +173,12 @@ app.post('/api/register', (req, res) => {
 });
 
 // 用户登录
-app.post('/api/login', (req, res) => {
-  const { email } = req.body;
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
   
   db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
     
     req.session.user = {
@@ -535,15 +539,25 @@ app.get('/admin/users', requireAuth, requireRole('admin'), (req, res) => {
 // 更新用户
 app.put('/admin/users/:id', requireAuth, requireRole('admin'), (req, res) => {
   const userId = parseInt(req.params.id);
-  const { email, role, linkedin_profile, industry } = req.body;
+  const { email, password, role, linkedin_profile, industry } = req.body;
   
-  db.run(`UPDATE users SET email = ?, role = ?, linkedin_profile = ?, industry = ? WHERE id = ?`,
-    [email, role, linkedin_profile, industry, userId], function(err) {
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      res.json({ message: 'User updated successfully' });
-    });
+  let query = 'UPDATE users SET email = ?, role = ?, linkedin_profile = ?, industry = ?';
+  const params = [email, role, linkedin_profile, industry];
+  
+  if (password) {
+    query += ', password = ?';
+    params.push(bcrypt.hashSync(password, 10));
+  }
+  
+  query += ' WHERE id = ?';
+  params.push(userId);
+  
+  db.run(query, params, function(err) {
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ message: 'User updated successfully' });
+  });
 });
 
 // 删除用户

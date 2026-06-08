@@ -79,10 +79,10 @@
       
       if (response.ok) {
         // Redirect based on role
-        if (data.role === 'client') {
-          window.location.href = '/client.html';
-        } else if (data.role === 'tester') {
-          window.location.href = '/tester.html';
+        if (data.role === 'employer') {
+          window.location.href = '/employer.html';
+        } else if (data.role === 'reviewer') {
+          window.location.href = '/reviewer.html';
         } else if (data.role === 'admin') {
           window.location.href = '/admin.html';
         }
