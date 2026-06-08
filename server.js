@@ -150,8 +150,8 @@ app.get('/', (req, res) => {
 app.post('/api/register', (req, res) => {
   const { email, password, role, linkedin_profile, industry } = req.body;
   
-  if (!email || !password || !role || !industry) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!email || !password || !role || !industry || !linkedin_profile) {
+    return res.status(400).json({ error: 'Missing required fields. LinkedIn profile is required.' });
   }
   
   if (role !== 'employer' && role !== 'reviewer') {
@@ -161,7 +161,7 @@ app.post('/api/register', (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
   
   db.run(`INSERT INTO users (email, password, role, linkedin_profile, industry) VALUES (?, ?, ?, ?, ?)`,
-    [email, hashedPassword, role, linkedin_profile || null, industry], (err) => {
+    [email, hashedPassword, role, linkedin_profile, industry], (err) => {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
           return res.status(400).json({ error: 'Email already exists' });
