@@ -231,6 +231,27 @@ app.post('/api/client/campaign', requireAuth, requireRole('employer'), (req, res
     });
 });
 
+// 雇主确认已汇款
+app.post('/api/client/campaign/:id/wire-confirm', requireAuth, requireRole('employer'), (req, res) => {
+  const campaignId = parseInt(req.params.id);
+  const employerId = req.session.user.id;
+  
+  // 验证活动属于当前雇主
+  db.get(`SELECT * FROM campaigns WHERE id = ? AND employer_id = ?`, [campaignId, employerId], (err, campaign) => {
+    if (err || !campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    // 更新状态为 pending_payment
+    db.run(`UPDATE campaigns SET status = 'pending_payment' WHERE id = ?`, [campaignId], function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to update campaign' });
+      }
+      res.json({ message: 'Notification sent to Admin. Awaiting verification.' });
+    });
+  });
+});
+
 // 获取我的活动
 app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), (req, res) => {
   const employerId = req.session.user.id;

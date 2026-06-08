@@ -255,8 +255,22 @@
     // Mark as paid
     async function markAsPaid(campaignId) {
       if (confirm('Are you sure you have wired the payment?')) {
-        alert('Thank you! Our team will verify your payment and activate your campaign within 24 hours.');
-        loadJobs();
+        try {
+          const response = await fetch(`/api/client/campaign/${campaignId}/wire-confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.ok) {
+            alert('Notification sent to Admin. Awaiting verification.');
+            loadJobs();
+          } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to send notification');
+          }
+        } catch (error) {
+          alert('Network error. Please try again.');
+        }
       }
     }
 
