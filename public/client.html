@@ -165,7 +165,7 @@
       }
       
       container.innerHTML = jobs.map(job => {
-        const progress = job.total_slots > 0 ? Math.round((job.approved_count / job.total_slots) * 100) : 0;
+        const progress = job.total_slots > 0 ? Math.round((job.completed_reviews / job.total_slots) * 100) : 0;
         const progressColor = progress === 100 ? 'bg-green-500' : 'bg-blue-600';
         
         return `
@@ -174,8 +174,8 @@
               <div>
                 <h3 class="font-semibold text-slate-900">${job.product_name}</h3>
                 <div class="flex items-center gap-3 mt-1">
-                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${job.target_site}</span>
-                  <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">${job.req_industry}</span>
+                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${job.platform}</span>
+                  <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">${job.industry}</span>
                 </div>
               </div>
               <span class="px-3 py-1 ${getStatusColor(job.status)} text-xs font-medium rounded-full">
@@ -187,7 +187,7 @@
             <div class="mb-4">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-sm text-slate-500">Progress</span>
-                <span class="text-sm font-medium text-slate-700">${job.approved_count}/${job.total_slots} reviews</span>
+                <span class="text-sm font-medium text-slate-700">${job.completed_reviews}/${job.total_slots} reviews</span>
               </div>
               <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div class="h-full ${progressColor} progress-bar rounded-full" style="width: ${progress}%"></div>

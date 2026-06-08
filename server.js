@@ -65,9 +65,10 @@ function initDB() {
       employer_id INTEGER NOT NULL,
       platform TEXT,
       product_name TEXT NOT NULL,
-      product_url TEXT NOT NULL,
+      product_url TEXT,
       industry TEXT NOT NULL,
-      budget_usd REAL NOT NULL,
+      budget_usd REAL,
+      total_slots INTEGER,
       status TEXT DEFAULT 'pending_payment',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (employer_id) REFERENCES users(id)
