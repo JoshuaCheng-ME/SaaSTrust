@@ -165,49 +165,63 @@ app.get('/', (req, res) => {
 
 // 用户注册
 app.post('/api/register', async (req, res) => {
-  const { email, password, role, linkedin_profile, industry } = req.body;
-  
-  if (!email || !password || !role || !industry || !linkedin_profile) {
-    return res.status(400).json({ error: 'Missing required fields. LinkedIn profile is required.' });
-  }
-  
-  if (role !== 'employer' && role !== 'reviewer') {
-    return res.status(400).json({ error: 'Invalid role' });
-  }
-  
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  
   try {
+    const { email, password, role, linkedin_profile, industry } = req.body;
+    
+    console.log('Registration attempt:', { email, role, industry });
+    
+    if (!email || !password || !role || !industry || !linkedin_profile) {
+      return res.status(400).json({ error: 'Missing required fields. All fields including LinkedIn profile are required.' });
+    }
+    
+    if (role !== 'employer' && role !== 'reviewer') {
+      return res.status(400).json({ error: 'Invalid role. Must be employer or reviewer.' });
+    }
+    
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    
     await db.execute(`INSERT INTO users (email, password, role, linkedin_profile, industry) VALUES (?, ?, ?, ?, ?)`,
       [email, hashedPassword, role, linkedin_profile, industry]);
     res.status(201).json({ message: 'Registration successful', role });
   } catch (err) {
+    console.error('Registration error:', err);
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Email already exists' });
     }
-    return res.status(500).json({ error: 'Registration failed' });
+    if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+      return res.status(500).json({ error: 'Database access denied. Check credentials.' });
+    }
+    if (err.code === 'ER_BAD_DB_ERROR') {
+      return res.status(500).json({ error: 'Database does not exist.' });
+    }
+    return res.status(500).json({ error: 'Registration failed: ' + err.message });
   }
 });
 
 // 用户登录
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  
-  const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-  
-  if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  try {
+    const { email, password } = req.body;
+    
+    const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    
+    if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const user = users[0];
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      industry: user.industry
+    };
+    
+    res.json({ message: 'Login successful', role: user.role });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Database connection error. Please try again.' });
   }
-  
-  const user = users[0];
-  req.session.user = {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    industry: user.industry
-  };
-  
-  res.json({ message: 'Login successful', role: user.role });
 });
 
 // 登出
