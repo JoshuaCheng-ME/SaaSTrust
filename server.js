@@ -203,13 +203,29 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    console.log('Login attempt for:', email);
+    
     const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
     
-    if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
+    console.log('Users found:', users.length);
+    
+    if (users.length === 0) {
+      console.log('User not found');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
     const user = users[0];
+    console.log('User role:', user.role);
+    console.log('Password hash:', user.password ? 'exists' : 'missing');
+    
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+    console.log('Password match:', passwordMatch);
+    
+    if (!passwordMatch) {
+      console.log('Password incorrect');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
     req.session.user = {
       id: user.id,
       email: user.email,
@@ -217,10 +233,11 @@ app.post('/api/auth/login', async (req, res) => {
       industry: user.industry
     };
     
+    console.log('Login successful, role:', user.role);
     res.json({ message: 'Login successful', role: user.role });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Database connection error. Please try again.' });
+    res.status(500).json({ error: 'Database connection error: ' + err.message });
   }
 });
 
