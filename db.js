@@ -5,10 +5,10 @@ const mysql = require('mysql2');
 
 // MySQL 连接池配置
 const pool = mysql.createPool({
-    // 1. Host 必须是纯粹的 'localhost'，绝对不能带 :3306 尾缀！
-    host: process.env.DB_HOST || 'localhost',
+    // 强制使用纯 IPv4 本地回环，彻底绕开 Hostinger 的 IPv6 拒绝 Bug
+    host: process.env.DB_HOST || '127.0.0.1',
     
-    // 2. 将端口号独立声明（mysql2 的标准写法）
+    // 严格分离端口号
     port: parseInt(process.env.DB_PORT) || 3306,
     
     user: process.env.DB_USER || 'u442193569_user',
