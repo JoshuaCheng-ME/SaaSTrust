@@ -117,12 +117,12 @@
       const password = document.getElementById('password').value;
       const role = document.querySelector('input[name="role"]:checked').value;
       const industry = document.getElementById('industry').value;
-      const linkedin_url = document.getElementById('linkedin_url').value;
+      const linkedin_profile = document.getElementById('linkedin_url').value;
       
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role, industry, linkedin_url })
+        body: JSON.stringify({ email, password, role, industry, linkedin_profile })
       });
       
       const data = await response.json();
