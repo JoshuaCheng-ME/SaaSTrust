@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 .env
 *.log
+*.sqlite
+*.db
+database.sqlite
+saastrust.db
