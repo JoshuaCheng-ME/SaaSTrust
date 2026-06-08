@@ -5,7 +5,7 @@ const mysql = require('mysql2');
 
 // MySQL 连接池配置
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '127.0.0.1', // 使用 IPv4 地址避免 IPv6 连接问题
     port: parseInt(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER || 'u442193569_user',
     password: process.env.DB_PASSWORD || '!SaasTrustNet123',
