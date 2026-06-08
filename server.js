@@ -193,20 +193,20 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // 登出
-app.post('/api/logout', (req, res) => {
+app.post('/api/auth/logout', (req, res) => {
   req.session.destroy();
   res.json({ message: 'Logout successful' });
 });
 
 // 获取当前用户
-app.get('/api/user', requireAuth, (req, res) => {
+app.get('/api/auth/user', requireAuth, (req, res) => {
   res.json(req.session.user);
 });
 
 // 🏢 Employer (B-End) Operations
 
 // 创建新活动
-app.post('/api/campaigns', requireAuth, requireRole('employer'), (req, res) => {
+app.post('/api/client/campaign', requireAuth, requireRole('employer'), (req, res) => {
   const { platform, product_name, product_url, industry, budget_usd } = req.body;
   
   if (!product_name || !product_url || !industry || !budget_usd) {
@@ -231,12 +231,8 @@ app.post('/api/campaigns', requireAuth, requireRole('employer'), (req, res) => {
 });
 
 // 获取我的活动
-app.get('/api/my-campaigns/:employer_id', requireAuth, requireRole('employer'), (req, res) => {
-  const employerId = parseInt(req.params.employer_id);
-  
-  if (employerId !== req.session.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), (req, res) => {
+  const employerId = req.session.user.id;
   
   db.all(`
     SELECT c.*,
@@ -259,13 +255,7 @@ app.get('/api/my-campaigns/:employer_id', requireAuth, requireRole('employer'), 
 // 👩‍💻 Reviewer (A-End) Smart-Matching
 
 // 智能匹配任务
-app.get('/api/recommendations/:reviewer_id', requireAuth, requireRole('reviewer'), (req, res) => {
-  const reviewerId = parseInt(req.params.reviewer_id);
-  
-  if (reviewerId !== req.session.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  
+app.get('/api/tester/matched', requireAuth, requireRole('reviewer'), (req, res) => {
   const reviewerIndustry = req.session.user.industry;
   
   db.all(`
@@ -285,7 +275,7 @@ app.get('/api/recommendations/:reviewer_id', requireAuth, requireRole('reviewer'
 });
 
 // 申请任务
-app.post('/api/applications/apply', requireAuth, requireRole('reviewer'), (req, res) => {
+app.post('/api/tester/apply', requireAuth, requireRole('reviewer'), (req, res) => {
   const { campaign_id } = req.body;
   
   // 检查是否已申请过此任务
@@ -306,7 +296,7 @@ app.post('/api/applications/apply', requireAuth, requireRole('reviewer'), (req, 
 });
 
 // 提交证明
-app.post('/api/applications/submit-proof', requireAuth, requireRole('reviewer'), upload.single('screenshot'), (req, res) => {
+app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.single('screenshot'), (req, res) => {
   const { application_id } = req.body;
   
   if (!req.file) {
@@ -325,12 +315,8 @@ app.post('/api/applications/submit-proof', requireAuth, requireRole('reviewer'),
 });
 
 // 获取我的申请
-app.get('/api/my-applications/:reviewer_id', requireAuth, requireRole('reviewer'), (req, res) => {
-  const reviewerId = parseInt(req.params.reviewer_id);
-  
-  if (reviewerId !== req.session.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+app.get('/api/tester/my-applications', requireAuth, requireRole('reviewer'), (req, res) => {
+  const reviewerId = req.session.user.id;
   
   db.all(`
     SELECT a.*, c.product_name, c.platform, c.industry, c.budget_usd
@@ -344,6 +330,22 @@ app.get('/api/my-applications/:reviewer_id', requireAuth, requireRole('reviewer'
     }
     res.json(applications);
   });
+});
+
+// 获取账户余额
+app.get('/api/tester/balance', requireAuth, requireRole('reviewer'), (req, res) => {
+  const reviewerId = req.session.user.id;
+  
+  // 计算已支付申请的总额（假设每单 20 美元）
+  db.get(`SELECT COUNT(*) as paid_count FROM applications WHERE reviewer_id = ? AND status = 'paid'`,
+    [reviewerId], (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to fetch balance' });
+      }
+      
+      const balance = (result.paid_count || 0) * 20;
+      res.json({ balance: balance, paid_count: result.paid_count || 0 });
+    });
 });
 
 // 👑 Admin Control Hub
