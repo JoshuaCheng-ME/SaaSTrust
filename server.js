@@ -6,17 +6,14 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
-const { Resend } = require('resend');
 const axios = require('axios');
 
 const db = require('./db');
 const MySQLStore = require('express-mysql-session')(session);
+const emailService = require('./services/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// ── Resend ──
-const resend = new Resend(process.env.RESEND_API_KEY || 'resend_api_key_placeholder');
 
 // ── Multer: proof screenshots ──
 const storage = multer.diskStorage({
@@ -239,29 +236,6 @@ function requireRole(...roles) {
   };
 }
 
-// ── Resend Email Helper ──
-async function sendGiftCardEmail(toEmail, code, productName) {
-  try {
-    await resend.emails.send({
-      from: 'payouts@saastrust.net',
-      to: toEmail,
-      subject: 'Your SaaSTrust Payout is Ready!',
-      html: `<div style="font-family:sans-serif;padding:20px;max-width:600px;border:1px solid #eaeaea;">
-        <h2 style="color:#000;font-weight:800;letter-spacing:-0.05em;">SaaSTrust.net</h2>
-        <p>Your G2/Capterra review submission has been successfully vetted and approved by our admin.</p>
-        <div style="background:#f9f9f9;padding:15px;border-radius:4px;font-family:monospace;font-size:18px;font-weight:bold;text-align:center;margin:20px 0;letter-spacing:2px;">
-          ${code}
-        </div>
-        <p style="color:#666;font-size:12px;">Thank you for maintaining premium quality standards in our B2B marketplace.</p>
-      </div>`
-    });
-    return true;
-  } catch (err) {
-    console.error('Email send failed:', err);
-    return false;
-  }
-}
-
 // ═══════════════════════════════════════════════
 //  PUBLIC ROUTES
 // ═══════════════════════════════════════════════
@@ -296,6 +270,12 @@ app.post('/api/register', async (req, res) => {
       `INSERT INTO users (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`,
       vals
     );
+
+    // ── Trigger 1: Employer Welcome Email (non-blocking) ──
+    if (role === 'employer') {
+      const name = extra?.b_name || email.split('@')[0];
+      emailService.sendEmployerWelcome(email, name).catch(() => {});
+    }
 
     res.status(201).json({ message: 'Registration successful', role });
   } catch (err) {
@@ -422,6 +402,11 @@ app.post('/api/employer/campaigns/:id/submit-payment', requireAuth, requireRole(
       'UPDATE campaigns SET gumroad_email = ?, status = ? WHERE id = ?',
       [gumroad_email.trim(), 'Pending confirmation', campaignId]
     );
+
+    // ── Trigger 2: Payment Pending Email (non-blocking) ──
+    const campaignTitle = campRows[0].product_name || `Campaign #${campaignId}`;
+    emailService.sendPaymentPending(req.session.user.email, campaignTitle, gumroad_email.trim()).catch(() => {});
+
     res.json({ message: 'Payment submitted for review', status: 'Pending confirmation' });
   } catch (err) {
     console.error('submit-payment error:', err);
@@ -476,6 +461,11 @@ app.post('/api/tester/apply', requireAuth, requireRole('reviewer'), async (req, 
       `INSERT INTO applications (reviewer_id, campaign_id, status) VALUES (?, ?, 'In Progress')`,
       [reviewerId, campaign_id]
     );
+    // ── Trigger 3: Reviewer Task Locked Email (non-blocking) ──
+    const reviewerEmail = req.session.user.email;
+    const campaignTitle = campRows[0]?.product_name || `Campaign #${campaign_id}`;
+    emailService.sendReviewerTaskLocked(reviewerEmail, campaignTitle).catch(() => {});
+
     res.json({ message: 'Task accepted', application_id: result.insertId });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -497,6 +487,21 @@ app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.sing
   );
 
   if (result.affectedRows === 0) return res.status(404).json({ error: 'Application not found' });
+
+  // ── Trigger 4: Notify Employer (non-blocking) ──
+  try {
+    const [rows] = await db.execute(`
+      SELECT c.product_name, u.email as employer_email
+      FROM applications a
+      JOIN campaigns c ON a.campaign_id = c.id
+      JOIN users u ON c.employer_id = u.id
+      WHERE a.id = ?
+    `, [application_id]);
+    if (rows.length > 0) {
+      emailService.sendEmployerReviewSubmitted(rows[0].employer_email, rows[0].product_name).catch(() => {});
+    }
+  } catch (e) { console.error('[Email] Trigger 4 failed (non-fatal):', e.message); }
+
   res.json({ message: 'Proof submitted. Under review.' });
 });
 
@@ -731,8 +736,8 @@ app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('adm
     await db.execute(`UPDATE campaigns SET status = 'Completed' WHERE id = ?`, [app.campaign_id]);
   }
 
-  // Send email
-  await sendGiftCardEmail(app.reviewer_email, gift_card_code, app.product_name);
+  // Send email (non-blocking)
+  emailService.sendReviewerPayout(app.reviewer_email, gift_card_code, app.product_name).catch(() => {});
 
   res.json({ message: 'Gift card released and email sent. Campaign auto-completed if filled.', campaign_completed: completeCount[0].cnt >= app.reviews_needed });
 });
