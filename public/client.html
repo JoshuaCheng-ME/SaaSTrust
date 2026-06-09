@@ -88,28 +88,97 @@
     </div>
   </main>
 
-  <!-- Wire Confirm Modal -->
-  <div id="wireModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeWireModal()"></div>
+  <!-- Gumroad Payment Modal -->
+  <div id="paymentModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closePaymentModal()"></div>
     <div class="relative z-10 flex items-center justify-center min-h-screen p-6">
-      <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
-        <h3 class="text-lg font-bold mb-4">Confirm Wire Transfer</h3>
-        <p class="text-sm text-slate-600 mb-4">Please enter the EXACT email you used for your Gumroad purchase:</p>
-        <input type="email" id="wireGumroadEmail" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-black mb-4" placeholder="your@gumroad.email">
-        <div class="flex gap-3">
-          <button onclick="closeWireModal()" class="flex-1 px-4 py-2 border border-slate-200 text-sm font-medium rounded-xl">Cancel</button>
-          <button onclick="confirmWire()" class="flex-1 px-4 py-2 bg-black text-white text-sm font-semibold rounded-xl" id="wireConfirmBtn">Confirm</button>
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-bold">Payment Activation</h3>
+          <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-900 text-xl">&times;</button>
+        </div>
+        <input type="hidden" id="paymentCampaignId">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Select Package</label>
+            <select id="paymentPackSelect" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent">
+              <option value="1">Pack 1 — 5 Reviews Starter ($149)</option>
+              <option value="2">Pack 2 — 10 Reviews Growth ($299)</option>
+            </select>
+          </div>
+          <button id="btnGumroadPay" onclick="goToGumroad()" class="w-full px-6 py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-all">
+            To Gumroad Pay →
+          </button>
+          <p class="text-xs text-slate-400">Opens Gumroad in a new tab. Complete your purchase, then return here.</p>
+          <hr class="border-slate-100">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Gumroad Payment Email</label>
+            <input id="gumroadEmail" type="email" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Enter the email used in Gumroad">
+            <p class="text-xs text-slate-400 mt-1 italic">Please enter the EXACT email used for your Gumroad purchase for automatic matching.</p>
+          </div>
+          <button onclick="submitPayment()" class="w-full px-6 py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-all">
+            I have paid, submit for review
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    let currentWireCampaignId = null;
+    let packUrls = { pack1: '', pack2: '', pack3: '' };
+
+    async function loadPackUrls() {
+      try {
+        const r = await fetch('/api/employer/pack-urls');
+        if (r.ok) {
+          const d = await r.json();
+          packUrls = { pack1: d.gumroad_pack1_url || '', pack2: d.gumroad_pack2_url || '', pack3: d.gumroad_pack3_url || '' };
+        }
+      } catch (e) { console.error('loadPackUrls:', e); }
+    }
 
     async function loadUser() {
       const r = await fetch('/api/auth/user');
-      if (r.ok) { document.getElementById('userEmail').textContent = (await r.json()).email; loadJobs(); }
+      if (r.ok) { document.getElementById('userEmail').textContent = (await r.json()).email; loadPackUrls(); loadJobs(); }
+      else { window.location.href = '/login.html'; }
+    }
+
+    function openPaymentModal(campaignId, reviewsNeeded) {
+      document.getElementById('paymentCampaignId').value = campaignId;
+      document.getElementById('gumroadEmail').value = '';
+      // Auto-select pack based on reviews_needed
+      const select = document.getElementById('paymentPackSelect');
+      if (reviewsNeeded <= 5) select.value = '1';
+      else if (reviewsNeeded <= 10) select.value = '2';
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+    function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
+
+    function goToGumroad() {
+      const pack = document.getElementById('paymentPackSelect').value;
+      const url = pack === '1' ? packUrls.pack1 : packUrls.pack2;
+      if (!url) { alert('Gumroad link not configured. Please contact admin.'); return; }
+      window.open(url, '_blank');
+    }
+
+    async function submitPayment() {
+      const campaignId = document.getElementById('paymentCampaignId').value;
+      const email = document.getElementById('gumroadEmail').value.trim();
+      if (!email || !email.includes('@')) { alert('Please enter a valid Gumroad payment email.'); return; }
+      const r = await fetch(`/api/employer/campaigns/${campaignId}/submit-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gumroad_email: email })
+      });
+      if (r.ok) {
+        alert('Payment submitted for admin review!');
+        closePaymentModal();
+        loadJobs();
+      } else {
+        const d = await r.json();
+        alert(d.error || 'Failed to submit payment');
+      }
+    }
       else { window.location.href = '/login.html'; }
     }
 
@@ -146,7 +215,7 @@
             </div>
           </div>
           ${j.status === 'Pending Payments' ? `
-            <button onclick="openWireModal(${j.id})" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg">I Have Wired the Money</button>
+            <button onclick="openPaymentModal(${j.id}, ${j.reviews_needed})" class="px-4 py-2 text-sm font-medium bg-black text-white rounded-lg hover:bg-gray-800 transition-all">Pay & Activate</button>
           ` : ''}
         </div>`;
       }).join('');
@@ -179,24 +248,6 @@
       if (r.ok) { alert('Campaign created! Complete payment via Gumroad.'); document.getElementById('campaignForm').reset(); loadJobs(); }
       else { const d = await r.json(); alert(d.error || 'Failed'); }
     });
-
-    function openWireModal(campaignId) {
-      currentWireCampaignId = campaignId;
-      document.getElementById('wireGumroadEmail').value = '';
-      document.getElementById('wireModal').classList.remove('hidden');
-    }
-    function closeWireModal() { document.getElementById('wireModal').classList.add('hidden'); currentWireCampaignId = null; }
-
-    async function confirmWire() {
-      const email = document.getElementById('wireGumroadEmail').value.trim();
-      const r = await fetch(`/api/client/campaign/${currentWireCampaignId}/wire-confirm`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ gumroad_email: email })
-      });
-      if (r.ok) { alert('Confirmation sent. Admin will verify your payment.'); closeWireModal(); loadJobs(); }
-      else { alert('Failed to send confirmation.'); }
-    }
 
     async function logout() { await fetch('/api/auth/logout', {method:'POST'}); window.location.href='/login.html'; }
     loadUser();

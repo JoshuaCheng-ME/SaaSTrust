@@ -165,6 +165,14 @@ async function initDB() {
     // unique key
     await safeAlter(`ALTER TABLE applications ADD UNIQUE KEY unique_match (reviewer_id, campaign_id)`);
 
+    // system_configs key-value table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS system_configs (
+        \`key\` VARCHAR(255) PRIMARY KEY,
+        \`value\` TEXT NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('Migrations complete.');
 
     // Default admin
@@ -371,6 +379,33 @@ app.get('/api/client/my-jobs', requireAuth, requireRole('employer'), async (req,
     ORDER BY c.id DESC
   `, [req.session.user.id]);
   res.json(campaigns);
+});
+
+// POST /api/employer/campaigns/:id/submit-payment — Employer submits payment email
+app.post('/api/employer/campaigns/:id/submit-payment', requireAuth, requireRole('employer'), async (req, res) => {
+  const campaignId = parseInt(req.params.id);
+  const employerId = req.session.user.id;
+  const { gumroad_email } = req.body;
+
+  if (!gumroad_email || !gumroad_email.includes('@'))
+    return res.status(400).json({ error: 'Valid gumroad_email is required' });
+
+  try {
+    const [campRows] = await db.execute('SELECT * FROM campaigns WHERE id = ?', [campaignId]);
+    if (campRows.length === 0) return res.status(404).json({ error: 'Campaign not found' });
+    if (campRows[0].employer_id !== employerId) return res.status(403).json({ error: 'Not your campaign' });
+    if (campRows[0].status !== 'Pending Payments')
+      return res.status(400).json({ error: 'Campaign is not in Pending Payments status' });
+
+    await db.execute(
+      'UPDATE campaigns SET gumroad_email = ?, status = ? WHERE id = ?',
+      [gumroad_email.trim(), 'Pending confirmation', campaignId]
+    );
+    res.json({ message: 'Payment submitted for review', status: 'Pending confirmation' });
+  } catch (err) {
+    console.error('submit-payment error:', err);
+    res.status(500).json({ error: 'Failed to submit payment' });
+  }
 });
 
 
@@ -728,6 +763,72 @@ app.post('/admin/users/:id/toggle-suspend', requireAuth, requireRole('admin'), a
   const newStatus = rows[0].account_status === 'Suspended' ? 'Approved' : 'Suspended';
   await db.execute('UPDATE users SET account_status = ? WHERE id = ?', [newStatus, userId]);
   res.json({ message: `User ${newStatus === 'Suspended' ? 'suspended' : 'approved'}`, account_status: newStatus });
+});
+
+// GET /admin/configs — Fetch Gumroad pack URLs
+app.get('/admin/configs', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      'SELECT `key`, `value` FROM system_configs WHERE `key` IN (?, ?, ?)',
+      ['gumroad_pack1_url', 'gumroad_pack2_url', 'gumroad_pack3_url']
+    );
+    const configs = {};
+    rows.forEach(r => { configs[r.key] = r.value; });
+    res.json({
+      gumroad_pack1_url: configs['gumroad_pack1_url'] || '',
+      gumroad_pack2_url: configs['gumroad_pack2_url'] || '',
+      gumroad_pack3_url: configs['gumroad_pack3_url'] || ''
+    });
+  } catch (err) {
+    console.error('GET /admin/configs error:', err);
+    res.status(500).json({ error: 'Failed to load configs' });
+  }
+});
+
+// POST /admin/configs — Save Gumroad pack URLs (upsert)
+app.post('/admin/configs', requireAuth, requireRole('admin'), async (req, res) => {
+  const { gumroad_pack1_url, gumroad_pack2_url, gumroad_pack3_url } = req.body;
+  try {
+    await db.execute(
+      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+      ['gumroad_pack1_url', gumroad_pack1_url || '']
+    );
+    await db.execute(
+      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+      ['gumroad_pack2_url', gumroad_pack2_url || '']
+    );
+    await db.execute(
+      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+      ['gumroad_pack3_url', gumroad_pack3_url || '']
+    );
+    res.json({ message: 'Configuration saved' });
+  } catch (err) {
+    console.error('POST /admin/configs error:', err);
+    res.status(500).json({ error: 'Failed to save configs' });
+  }
+});
+
+// GET /api/employer/pack-urls — Get pack URLs for employer frontend
+app.get('/api/employer/pack-urls', requireAuth, requireRole('employer'), async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      'SELECT `key`, `value` FROM system_configs WHERE `key` IN (?, ?, ?)',
+      ['gumroad_pack1_url', 'gumroad_pack2_url', 'gumroad_pack3_url']
+    );
+    const configs = {};
+    rows.forEach(r => { configs[r.key] = r.value; });
+    res.json({
+      gumroad_pack1_url: configs['gumroad_pack1_url'] || '',
+      gumroad_pack2_url: configs['gumroad_pack2_url'] || '',
+      gumroad_pack3_url: configs['gumroad_pack3_url'] || ''
+    });
+  } catch (err) {
+    console.error('GET /api/employer/pack-urls error:', err);
+    res.status(500).json({ error: 'Failed to load pack urls' });
+  }
 });
 
 
