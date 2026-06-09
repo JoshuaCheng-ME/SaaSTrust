@@ -79,10 +79,11 @@
     let currentTab = 'In Progress';
     let currentApplicationId = null;
     let applications = [];
+    let claimedCampaignIds = new Set();
 
     async function loadUser() {
       const r = await fetch('/api/auth/user');
-      if (r.ok) { const u = await r.json(); if (u.role !== 'reviewer') { window.location.href = '/login.html'; return; } document.getElementById('userEmail').textContent = u.email; loadMatched(); loadApplications(); loadBalance(); }
+      if (r.ok) { const u = await r.json(); if (u.role !== 'reviewer') { window.location.href = '/login.html'; return; } document.getElementById('userEmail').textContent = u.email; await loadApplications(); loadMatched(); loadBalance(); }
       else { window.location.href = '/login.html'; }
     }
 
@@ -94,7 +95,9 @@
         container.innerHTML = '<div class="text-center py-12 text-slate-400">No matched jobs available at this time.</div>';
         return;
       }
-      container.innerHTML = campaigns.map(c => `
+      container.innerHTML = campaigns.map(c => {
+        const claimed = claimedCampaignIds.has(c.id);
+        return `
         <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md">
           <div class="flex items-start justify-between mb-4">
             <div>
@@ -108,25 +111,52 @@
           </div>
           <div class="flex items-center justify-between">
             <p class="text-sm text-slate-500">Complete a review for $20</p>
-            <button onclick="acceptTask(${c.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-all shadow-lg">Accept Task</button>
+            ${claimed 
+              ? `<span class="px-4 py-2 bg-slate-100 text-slate-400 font-medium rounded-lg text-sm">Already Claimed</span>`
+              : `<button onclick="acceptTask(${c.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-all shadow-lg">Accept Task</button>`
+            }
           </div>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     async function loadApplications() {
       const r = await fetch('/api/tester/my-applications');
       applications = await r.json();
+      claimedCampaignIds = new Set(applications.map(a => a.campaign_id));
       showTab(currentTab);
     }
 
     function showTab(tab) {
       currentTab = tab;
+
+      // Update tab styles
       document.querySelectorAll('[id^="tab-"]').forEach(t => { t.classList.remove('tab-active'); t.classList.add('text-slate-500'); });
       document.getElementById('tab-' + tab).classList.add('tab-active');
       document.getElementById('tab-' + tab).classList.remove('text-slate-500');
 
-      const filtered = applications.filter(a => a.status === tab);
+      // Update tab counts
+      const counts = {
+        'In Progress': applications.filter(a => a.status === 'In Progress').length,
+        'Under Review': applications.filter(a => a.status === 'Under Review').length,
+        'Pending exchange': applications.filter(a => a.status === 'Pending exchange').length,
+        'Completed': applications.filter(a => a.status === 'Completed').length
+      };
+      const rejCount = applications.filter(a => a.status === 'Rejected').length;
+      counts['In Progress'] += rejCount;
+      document.getElementById('tab-In Progress').textContent = 'In Progress (' + counts['In Progress'] + ')';
+      document.getElementById('tab-Under Review').textContent = 'Under Review (' + counts['Under Review'] + ')';
+      document.getElementById('tab-Pending exchange').textContent = 'Pending Exchange (' + counts['Pending exchange'] + ')';
+      document.getElementById('tab-Completed').textContent = 'Completed (' + counts['Completed'] + ')';
+
+      // Filter: In Progress tab includes Rejected status
+      let filtered;
+      if (tab === 'In Progress') {
+        filtered = applications.filter(a => a.status === 'In Progress' || a.status === 'Rejected');
+      } else {
+        filtered = applications.filter(a => a.status === tab);
+      }
+
       const container = document.getElementById('applicationsList');
       if (filtered.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400">No tasks found.</div>';
@@ -139,7 +169,7 @@
               <h3 class="font-semibold text-slate-900">${a.product_name}</h3>
               <div class="flex items-center gap-2 mt-1">
                 <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${a.target_platform}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusColor(a.status)}">${a.status}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusColor(a.status)}">${a.status === 'Rejected' ? 'Rejected' : a.status}</span>
               </div>
             </div>
           </div>
@@ -157,6 +187,7 @@
               ${a.gift_card_code ? `<span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-mono rounded-full">${a.gift_card_code}</span>` : ''}
             </div>
           ` : ''}
+          ${a.status === 'Rejected' ? '<p class="text-sm text-red-600">Your proof was rejected. Please re-upload with corrections.</p>' : ''}
         </div>
       `).join('');
     }
@@ -164,6 +195,7 @@
     function statusColor(s) {
       switch(s) {
         case 'In Progress': return 'bg-blue-100 text-blue-700';
+        case 'Rejected': return 'bg-red-100 text-red-700';
         case 'Under Review': return 'bg-amber-100 text-amber-700';
         case 'Pending exchange': return 'bg-purple-100 text-purple-700';
         case 'Completed': return 'bg-green-100 text-green-700';

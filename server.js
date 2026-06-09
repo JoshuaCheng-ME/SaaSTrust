@@ -755,16 +755,16 @@ app.get('/admin/campaigns/:id/applications', requireAuth, requireRole('admin'), 
   }
 });
 
-// POST /admin/applications/:id/reject — Under Review → In Progress (let reviewer re-upload)
+// POST /admin/applications/:id/reject — Under Review → Rejected
 app.post('/admin/applications/:id/reject', requireAuth, requireRole('admin'), async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     const [result] = await db.execute(
-      `UPDATE applications SET status = 'In Progress', screenshot_url = NULL WHERE id = ? AND status = 'Under Review'`,
+      `UPDATE applications SET status = 'Rejected', screenshot_url = NULL WHERE id = ? AND status = 'Under Review'`,
       [id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Application not found or not in Under Review' });
-    res.json({ message: 'Application rejected. Reviewer can re-upload proof.' });
+    res.json({ message: 'Application rejected.' });
   } catch (err) {
     console.error('Reject error:', err);
     res.status(500).json({ error: 'Failed to reject application' });
