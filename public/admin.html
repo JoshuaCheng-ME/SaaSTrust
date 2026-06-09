@@ -3,531 +3,621 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaSTrust - Admin Dashboard</title>
+  <title>SaaSTrust Admin — Control Hub v3.1</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
-    .modal-backdrop {
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-    }
+    .panel-tab.active { border-bottom: 2px solid #000; color: #000; font-weight: 600; }
+    .modal-bg { background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+    .toggle-track { transition: background 0.2s; }
+    .toggle-dot { transition: transform 0.2s; }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
-  <!-- Header -->
-  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
-        <span class="px-2 py-1 bg-black text-white text-xs font-medium rounded-full">Admin</span>
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <h1 class="text-xl font-extrabold tracking-tight">SaaSTrust.net</h1>
+      <span class="px-2.5 py-0.5 bg-black text-white text-[11px] font-semibold rounded-full tracking-wide">ADMIN v3.1</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-slate-500" id="adminEmail">admin@saastrust.net</span>
+      <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ METRIC CARDS ═══════════ -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+  <div class="grid grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Revenue</span>
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
-      <div class="flex items-center gap-4">
-        <span class="text-sm text-slate-500">admin@saastrust.net</span>
-        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-          Logout
+      <p class="text-2xl font-bold" id="totalRevenue">$0</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Net Profit</span>
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      </div>
+      <p class="text-2xl font-bold" id="netProfit">$0</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Payments</span>
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <p class="text-2xl font-bold" id="pendingPayments">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Proofs</span>
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <p class="text-2xl font-bold" id="pendingProofs">0</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ PANEL TABS ═══════════ -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="border-b border-slate-200 bg-slate-50/50">
+      <div class="flex gap-0 px-4 overflow-x-auto">
+        <button onclick="switchPanel('config')" id="pt-config" class="panel-tab active px-5 py-3.5 text-sm">Panel 0 · Config</button>
+        <button onclick="switchPanel('terms')" id="pt-terms" class="panel-tab px-5 py-3.5 text-sm text-slate-500">Panel 1 · Terms & Users</button>
+        <button onclick="switchPanel('campaigns')" id="pt-campaigns" class="panel-tab px-5 py-3.5 text-sm text-slate-500">Panel 2 · Campaigns</button>
+        <button onclick="switchPanel('vetting')" id="pt-vetting" class="panel-tab px-5 py-3.5 text-sm text-slate-500">Panel 3 · Vetting & Payouts</button>
+        <button onclick="switchPanel('directory')" id="pt-directory" class="panel-tab px-5 py-3.5 text-sm text-slate-500">Panel 4 · Directory</button>
+      </div>
+    </div>
+
+    <!-- ────── PANEL 0: Global Config ────── -->
+    <div id="panel-config" class="p-6">
+      <h2 class="text-lg font-bold mb-6">Global App Configuration</h2>
+      <div class="grid md:grid-cols-2 gap-6 max-w-3xl">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Gumroad Access Token</label>
+          <input id="cfgGumroadToken" type="text" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Gumroad access token...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Gumroad Webhook Endpoint</label>
+          <input type="text" value="/api/webhook/gumroad" readonly class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Resend API Key</label>
+          <input id="cfgResendKey" type="text" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="re_...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Google Analytics Code</label>
+          <input id="cfgGaCode" type="text" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="G-XXXXXXXXXX">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">LinkedIn Client ID</label>
+          <input id="cfgLinkedinId" type="text" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">LinkedIn Client Secret</label>
+          <input id="cfgLinkedinSecret" type="password" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Google Client ID</label>
+          <input id="cfgGoogleId" type="text" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Google Client Secret</label>
+          <input id="cfgGoogleSecret" type="password" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent">
+        </div>
+      </div>
+      <button onclick="saveConfig()" class="mt-6 px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800 transition-all">Save Configuration</button>
+    </div>
+
+    <!-- ────── PANEL 1: Terms & Lists ────── -->
+    <div id="panel-terms" class="p-6 hidden">
+      <h2 class="text-lg font-bold mb-6">Terms & Subscribed Users</h2>
+      <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">B-End (Employer) Legal Terms</label>
+          <textarea id="termsEmployer" rows="6" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Employer legal framework text..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">A-End (Reviewer) Legal Terms</label>
+          <textarea id="termsReviewer" rows="6" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Reviewer legal framework text..."></textarea>
+        </div>
+      </div>
+
+      <h3 class="text-md font-bold mb-4">Subscribed User Management</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200">
+              <th class="text-left py-3 px-3 text-xs font-semibold text-slate-500 uppercase">ID</th>
+              <th class="text-left py-3 px-3 text-xs font-semibold text-slate-500 uppercase">Email</th>
+              <th class="text-left py-3 px-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
+              <th class="text-left py-3 px-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th class="text-left py-3 px-3 text-xs font-semibold text-slate-500 uppercase">Action</th>
+            </tr>
+          </thead>
+          <tbody id="termsUserTable">
+            <tr><td colspan="5" class="text-center py-12 text-slate-400">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ────── PANEL 2: Campaign Operations ────── -->
+    <div id="panel-campaigns" class="p-6 hidden">
+      <h2 class="text-lg font-bold mb-4">Campaign Operations Control Hub</h2>
+      <div class="flex items-center gap-2 mb-6">
+        <span class="text-sm text-slate-500">Filter by status:</span>
+        <select id="campaignFilter" onchange="loadCampaigns()" class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black">
+          <option value="all">All Campaigns</option>
+          <option value="Pending Payments">Pending Payments</option>
+          <option value="Pending confirmation">Pending Confirmation</option>
+          <option value="Active">Active</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <button onclick="loadCampaigns()" class="ml-auto px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Refresh</button>
+      </div>
+      <div id="campaignList" class="space-y-4">
+        <div class="text-center py-12 text-slate-400">Loading...</div>
+      </div>
+    </div>
+
+    <!-- ────── PANEL 3: Vetting & Disbursal ────── -->
+    <div id="panel-vetting" class="p-6 hidden">
+      <h2 class="text-lg font-bold mb-4">Vetting &amp; Disbursal Matrix</h2>
+      <div class="flex gap-1 border-b border-slate-200 mb-6">
+        <button onclick="switchVetTab('Under Review')" id="vt-Under Review" class="vet-tab active px-5 py-3 text-sm font-medium border-b-2 border-black">Tab A · Under Review</button>
+        <button onclick="switchVetTab('Pending exchange')" id="vt-Pending exchange" class="vet-tab px-5 py-3 text-sm text-slate-500">Tab B · Pending Exchange</button>
+      </div>
+      <div id="vetContent" class="space-y-4">
+        <div class="text-center py-12 text-slate-400">Loading...</div>
+      </div>
+    </div>
+
+    <!-- ────── PANEL 4: User Directory ────── -->
+    <div id="panel-directory" class="p-6 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold">User Directory Grid</h2>
+        <div class="flex items-center gap-2">
+          <input type="text" id="dirSearch" placeholder="Search by email..." class="w-56 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black">
+          <button onclick="loadDirectory()" class="px-4 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg">Search</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200">
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">ID</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">Email</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">Role</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">Industry</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">LinkedIn</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">Status</th>
+              <th class="text-left py-3 px-2 text-[11px] font-semibold text-slate-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dirTableBody">
+            <tr><td colspan="7" class="text-center py-12 text-slate-400">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Lightbox Modal -->
+<div id="lightboxModal" class="fixed inset-0 z-[100] hidden">
+  <div class="modal-bg absolute inset-0" onclick="closeLightbox()"></div>
+  <div class="relative z-10 flex items-center justify-center min-h-screen p-6">
+    <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-2xl hover:text-slate-300">&times;</button>
+    <img id="lightboxImg" src="" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl border-2 border-white/20">
+  </div>
+</div>
+
+<!-- Profile Detail Modal -->
+<div id="profileModal" class="fixed inset-0 z-[100] hidden">
+  <div class="modal-bg absolute inset-0" onclick="closeProfileModal()"></div>
+  <div class="relative z-10 flex items-center justify-center min-h-screen p-6">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">User Profile Specs</h3>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xl">&times;</button>
+      </div>
+      <div id="profileContent" class="text-sm space-y-2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="fixed inset-0 z-[100] hidden">
+  <div class="modal-bg absolute inset-0" onclick="closeEditUserModal()"></div>
+  <div class="relative z-10 flex items-center justify-center min-h-screen p-6">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">Edit User</h3>
+      <form id="editUserForm" onsubmit="saveUser(event)" class="space-y-3">
+        <input type="hidden" id="editUserId">
+        <div><label class="block text-xs font-medium text-slate-600 mb-1">Email</label><input id="editEmail" type="email" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" required></div>
+        <div><label class="block text-xs font-medium text-slate-600 mb-1">Role</label><select id="editRole" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="admin">Admin</option><option value="employer">Employer</option><option value="reviewer">Reviewer</option></select></div>
+        <div><label class="block text-xs font-medium text-slate-600 mb-1">Industry</label><input id="editIndustry" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" required></div>
+        <div><label class="block text-xs font-medium text-slate-600 mb-1">LinkedIn</label><input id="editLinkedin" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+        <div><label class="block text-xs font-medium text-slate-600 mb-1">Status</label><select id="editStatus" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="Approved">Approved</option><option value="Suspended">Suspended</option></select></div>
+        <div class="flex gap-3 pt-3">
+          <button type="button" onclick="closeEditUserModal()" class="flex-1 px-3 py-2 border border-slate-200 text-sm font-medium rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-3 py-2 bg-black text-white text-sm font-semibold rounded-lg">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCRIPTS ═══════════ -->
+<script>
+// ─── Panel Switching ───
+function switchPanel(name) {
+  document.querySelectorAll('[id^="panel-"]').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.panel-tab').forEach(t => { t.classList.remove('active'); t.classList.add('text-slate-500'); });
+  document.getElementById('panel-' + name).classList.remove('hidden');
+  document.getElementById('pt-' + name).classList.add('active');
+  document.getElementById('pt-' + name).classList.remove('text-slate-500');
+
+  if (name === 'terms') loadTermsUsers();
+  if (name === 'campaigns') loadCampaigns();
+  if (name === 'vetting') loadVetting('Under Review');
+  if (name === 'directory') loadDirectory();
+}
+
+// ─── Dashboard Data ───
+async function loadDashboard() {
+  const r = await fetch('/admin/dashboard-data');
+  if (!r.ok) { window.location.href = '/login.html'; return; }
+  const d = await r.json();
+  document.getElementById('totalRevenue').textContent = '$' + d.total_revenue.toFixed(2);
+  document.getElementById('netProfit').textContent = '$' + d.net_profit.toFixed(2);
+  document.getElementById('pendingPayments').textContent = d.pending_payments_count;
+  document.getElementById('pendingProofs').textContent = d.pending_proofs_count;
+}
+
+// ─── Panel 0: Save Config ───
+function saveConfig() {
+  alert('Config saved locally. (In production, persist to .env / DB)');
+}
+
+// ─── Panel 1: Terms Users ───
+async function loadTermsUsers() {
+  const r = await fetch('/admin/users');
+  const users = await r.json();
+  const tbody = document.getElementById('termsUserTable');
+  tbody.innerHTML = users.map(u => `
+    <tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="py-3 px-3">${u.id}</td>
+      <td class="py-3 px-3">${u.email}</td>
+      <td class="py-3 px-3"><span class="px-2 py-0.5 text-xs rounded-full ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='employer'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}">${u.role}</span></td>
+      <td class="py-3 px-3">
+        <span class="px-2 py-0.5 text-xs rounded-full font-medium ${u.account_status==='Suspended'?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}">${u.account_status||'Approved'}</span>
+      </td>
+      <td class="py-3 px-3">
+        <label class="inline-flex items-center cursor-pointer">
+          <input type="checkbox" class="sr-only peer" ${u.account_status==='Suspended'?'checked':''} onchange="toggleSuspend(${u.id}, this)" ${u.id==${getCurrentUserId()}?'disabled':''}>
+          <div class="toggle-track w-9 h-5 rounded-full ${u.account_status==='Suspended'?'bg-red-500':'bg-slate-300'} peer-focus:ring-2 peer-focus:ring-black relative after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${u.account_status==='Suspended'?'after:translate-x-4':''}"></div>
+          <span class="ml-2 text-xs ${u.account_status==='Suspended'?'text-red-600':'text-emerald-600'}">${u.account_status==='Suspended'?'Suspended':'Approved'}</span>
+        </label>
+      </td>
+    </tr>
+  `).join('');
+  if (users.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-slate-400">No users found.</td></tr>';
+}
+
+async function toggleSuspend(userId, el) {
+  const r = await fetch(`/admin/users/${userId}/toggle-suspend`, { method: 'POST' });
+  if (r.ok) {
+    loadTermsUsers();
+    loadDirectory();
+  } else {
+    el.checked = !el.checked;
+    alert('Failed to toggle');
+  }
+}
+
+function getCurrentUserId() {
+  return -1; // admin can't suspend themselves via this toggle
+}
+
+// ─── Panel 2: Campaigns ───
+async function loadCampaigns() {
+  const filter = document.getElementById('campaignFilter').value;
+  const r = await fetch('/admin/pending-payments?filter=' + encodeURIComponent(filter));
+  const campaigns = await r.json();
+  const container = document.getElementById('campaignList');
+
+  if (campaigns.length === 0) {
+    container.innerHTML = '<div class="text-center py-12 text-slate-400">No campaigns found.</div>';
+    return;
+  }
+
+  container.innerHTML = campaigns.map(c => `
+    <div class="border border-slate-200 rounded-xl p-5 hover:shadow-sm transition-shadow bg-white">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <h3 class="font-semibold">${c.product_name}</h3>
+          <div class="flex items-center gap-2 mt-1 flex-wrap">
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${c.target_platform}</span>
+            <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">${c.target_industry}</span>
+            <span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusBadge(c.status)}">${c.status}</span>
+          </div>
+        </div>
+        <div class="text-right text-sm">
+          <p class="font-bold">${c.reviews_needed} reviews</p>
+          <p class="text-slate-500 text-xs">${c.employer_email}</p>
+          ${c.gumroad_email ? `<p class="text-slate-400 text-xs">Gumroad: ${c.gumroad_email}</p>` : ''}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 flex-wrap">
+        ${c.product_url ? `<a href="${c.product_url}" target="_blank" class="text-blue-600 hover:underline text-xs truncate max-w-[220px]">${c.product_url}</a>` : ''}
+
+        ${c.status === 'Pending confirmation' || c.status === 'Pending Payments' ? `
+          <button onclick="confirmCampaignPayment(${c.id})" class="px-4 py-2 bg-black text-white text-xs font-semibold rounded-lg hover:bg-gray-800 ml-auto">✓ Confirm Gumroad Paid</button>
+        ` : ''}
+
+        <button onclick="openInvoiceUpload(${c.id})" class="px-3 py-2 border border-slate-300 text-xs font-medium rounded-lg hover:bg-slate-50">
+          ${c.invoice_url ? '📎 View Invoice' : '📎 Upload Invoice'}
         </button>
+
+        ${c.invoice_url ? `<a href="${c.invoice_url}" target="_blank" class="text-xs text-slate-500 hover:text-slate-700">Download</a>` : ''}
       </div>
     </div>
-  </header>
+  `).join('');
+}
 
-  <main class="max-w-7xl mx-auto px-6 py-8">
-    <!-- Metric Cards Dashboard Grid -->
-    <div class="grid grid-cols-4 gap-4 mb-8">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-medium text-slate-500">Total Revenue</span>
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+function statusBadge(s) {
+  switch (s) {
+    case 'Pending Payments': return 'bg-amber-100 text-amber-700';
+    case 'Pending confirmation': return 'bg-orange-100 text-orange-700';
+    case 'Active': return 'bg-emerald-100 text-emerald-700';
+    case 'Completed': return 'bg-slate-100 text-slate-600';
+    default: return 'bg-slate-100 text-slate-600';
+  }
+}
+
+async function confirmCampaignPayment(id) {
+  if (!confirm('Confirm Gumroad payment and activate this campaign?')) return;
+  const r = await fetch(`/admin/campaigns/${id}/confirm-payment`, { method: 'POST' });
+  if (r.ok) { loadCampaigns(); loadDashboard(); } else { alert('Failed'); }
+}
+
+function openInvoiceUpload(campaignId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.png,.jpg,.jpeg';
+  input.onchange = async () => {
+    const fd = new FormData();
+    fd.append('invoice', input.files[0]);
+    const r = await fetch(`/admin/campaigns/${campaignId}/upload-invoice`, { method: 'POST', body: fd });
+    if (r.ok) { alert('Invoice uploaded!'); loadCampaigns(); } else { alert('Upload failed'); }
+  };
+  input.click();
+}
+
+// ─── Panel 3: Vetting ───
+let currentVetTab = 'Under Review';
+
+function switchVetTab(status) {
+  currentVetTab = status;
+  document.querySelectorAll('.vet-tab').forEach(t => { t.classList.remove('active', 'border-b-2', 'border-black'); t.classList.add('text-slate-500'); });
+  document.getElementById('vt-' + status).classList.add('active', 'border-b-2', 'border-black');
+  document.getElementById('vt-' + status).classList.remove('text-slate-500');
+  loadVetting(status);
+}
+
+async function loadVetting(status) {
+  const r = await fetch('/admin/applications?status=' + encodeURIComponent(status));
+  const apps = await r.json();
+  const container = document.getElementById('vetContent');
+
+  if (apps.length === 0) {
+    container.innerHTML = '<div class="text-center py-12 text-slate-400">No applications in this queue.</div>';
+    return;
+  }
+
+  container.innerHTML = apps.map(a => `
+    <div class="border border-slate-200 rounded-xl p-5 bg-white hover:shadow-sm">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <h3 class="font-semibold">${a.product_name}</h3>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${a.target_platform}</span>
+            <span class="px-2 py-0.5 text-xs rounded-full ${status==='Under Review'?'bg-amber-100 text-amber-700':'bg-blue-100 text-blue-700'}">${a.status}</span>
+            <span class="text-xs text-slate-500">Reviewer: ${a.reviewer_email}</span>
+          </div>
         </div>
-        <p class="text-3xl font-bold text-slate-900" id="totalRevenue">$0</p>
+        ${a.screenshot_url ? `
+          <img src="${a.screenshot_url}" onclick="openLightbox('${a.screenshot_url}')" class="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity">
+        ` : ''}
       </div>
-      
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-medium text-slate-500">Net Profit</span>
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
+
+      ${status === 'Under Review' ? `
+        <div class="flex justify-end">
+          <button onclick="approveProof(${a.id})" class="px-4 py-2 bg-black text-white text-xs font-semibold rounded-lg hover:bg-gray-800">Approve Proof → Pending Exchange</button>
         </div>
-        <p class="text-3xl font-bold text-slate-900" id="netProfit">$0</p>
-      </div>
-      
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-medium text-slate-500">Pending Payments</span>
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      ` : ''}
+
+      ${status === 'Pending exchange' ? `
+        <div class="flex items-center gap-3">
+          <input type="text" id="giftCard-${a.id}" placeholder="Paste Amazon Voucher Code..." class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black">
+          <button onclick="releaseCard(${a.id})" class="px-5 py-2.5 bg-black text-white text-xs font-semibold rounded-lg hover:bg-gray-800 whitespace-nowrap">Release Card & Send Email</button>
         </div>
-        <p class="text-3xl font-bold text-slate-900" id="pendingPayments">0</p>
-      </div>
-      
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-medium text-slate-500">Pending Proofs</span>
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </div>
-        <p class="text-3xl font-bold text-slate-900" id="pendingProofs">0</p>
-      </div>
+      ` : ''}
     </div>
+  `).join('');
+}
 
-    <!-- Tabbed Workflow Hub -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8">
-      <div class="border-b border-slate-100">
-        <div class="flex gap-1 px-6">
-          <button onclick="switchTab('pendingPayments')" id="tab-pendingPayments" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
-            Pending Payments
-          </button>
-          <button onclick="switchTab('pendingProofs')" id="tab-pendingProofs" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
-            Pending Proofs
-          </button>
-          <button onclick="switchTab('users')" id="tab-users" class="px-6 py-4 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-200 transition-all">
-            Users Directory
-          </button>
+async function approveProof(id) {
+  if (!confirm('Approve this proof and move to Pending Exchange?')) return;
+  const r = await fetch(`/admin/applications/${id}/approve-proof`, { method: 'POST' });
+  if (r.ok) { loadVetting('Under Review'); loadDashboard(); } else { alert('Failed'); }
+}
+
+async function releaseCard(id) {
+  const code = document.getElementById('giftCard-' + id).value.trim();
+  if (!code) { alert('Paste the Amazon voucher code first'); return; }
+  if (!confirm('Release this card and send email? This cannot be undone.')) return;
+  const r = await fetch(`/admin/applications/${id}/verify-and-pay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gift_card_code: code })
+  });
+  if (r.ok) {
+    const d = await r.json();
+    alert('Payment released!' + (d.campaign_completed ? ' Campaign auto-completed!' : ''));
+    loadVetting('Pending exchange');
+    loadDashboard();
+  } else { alert('Failed to release payment'); }
+}
+
+// ─── Panel 4: User Directory ───
+async function loadDirectory() {
+  const search = document.getElementById('dirSearch').value;
+  const url = search ? '/admin/users?search=' + encodeURIComponent(search) : '/admin/users';
+  const r = await fetch(url);
+  const users = await r.json();
+  const tbody = document.getElementById('dirTableBody');
+
+  if (users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-slate-400">No users found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => `
+    <tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="py-3 px-2">${u.id}</td>
+      <td class="py-3 px-2 font-medium">${u.email}</td>
+      <td class="py-3 px-2"><span class="px-2 py-0.5 text-xs rounded-full ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='employer'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}">${u.role}</span></td>
+      <td class="py-3 px-2">${u.industry}</td>
+      <td class="py-3 px-2">${u.linkedin_profile ? '<a href="'+u.linkedin_profile+'" target="_blank" class="text-blue-600 hover:underline text-xs">View</a>' : '<span class="text-slate-400 text-xs">N/A</span>'}</td>
+      <td class="py-3 px-2"><span class="px-2 py-0.5 text-xs rounded-full font-medium ${u.account_status==='Suspended'?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}">${u.account_status||'Approved'}</span></td>
+      <td class="py-3 px-2">
+        <div class="flex items-center gap-2">
+          <button onclick="editUser(${u.id})" class="text-xs text-slate-600 hover:text-slate-900" title="Edit Industry">🔧</button>
+          <button onclick="viewProfile(${u.id})" class="text-xs text-slate-600 hover:text-slate-900" title="View Profile">📑</button>
+          <button onclick="deleteUser(${u.id})" class="text-xs text-red-500 hover:text-red-700" title="Terminate">🗑️</button>
         </div>
-      </div>
+      </td>
+    </tr>
+  `).join('');
+}
 
-      <!-- Pending Payments Tab -->
-      <div id="content-pendingPayments" class="p-6 hidden">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-900">Pending Payments</h2>
-          <button onclick="loadPendingPayments()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-            Refresh
-          </button>
-        </div>
-        
-        <div id="pendingPaymentsList" class="space-y-4">
-          <div class="text-center py-12 text-slate-400">
-            <p>No pending payments.</p>
-          </div>
-        </div>
-      </div>
+// ─── User Edit ───
+async function editUser(uid) {
+  const r = await fetch('/admin/users');
+  const users = await r.json();
+  const u = users.find(x => x.id === uid);
+  if (!u) return;
 
-      <!-- Pending Proofs Tab -->
-      <div id="content-pendingProofs" class="p-6 hidden">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-900">Pending Proofs</h2>
-          <button onclick="loadPendingProofs()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-            Refresh
-          </button>
-        </div>
-        
-        <div id="pendingProofsList" class="space-y-4">
-          <div class="text-center py-12 text-slate-400">
-            <p>No pending proofs.</p>
-          </div>
-        </div>
-      </div>
+  document.getElementById('editUserId').value = u.id;
+  document.getElementById('editEmail').value = u.email;
+  document.getElementById('editRole').value = u.role;
+  document.getElementById('editIndustry').value = u.industry;
+  document.getElementById('editLinkedin').value = u.linkedin_profile || '';
+  document.getElementById('editStatus').value = u.account_status || 'Approved';
+  document.getElementById('editUserModal').classList.remove('hidden');
+}
 
-      <!-- Users Directory Tab -->
-      <div id="content-users" class="p-6 hidden">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-900">Users Directory</h2>
-          <div class="flex items-center gap-2">
-            <input type="text" id="userSearch" placeholder="Search users..." class="w-64 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900">
-            <button onclick="loadUsers()" class="px-4 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg transition-all">
-              Search
-            </button>
-          </div>
-        </div>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-slate-100">
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">ID</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Email</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Role</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Industry</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">LinkedIn</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Created</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody">
-              <tr>
-                <td colspan="7" class="text-center py-12 text-slate-400">
-                  <p>No users found.</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </main>
+function closeEditUserModal() {
+  document.getElementById('editUserModal').classList.add('hidden');
+}
 
-  <!-- Image Modal -->
-  <div id="imageModal" class="fixed inset-0 z-50 hidden">
-    <div class="modal-backdrop absolute inset-0" onclick="closeImageModal()"></div>
-    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-      <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white text-2xl hover:text-slate-200">✕</button>
-      <img id="modalImage" src="" alt="Proof" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl">
-    </div>
-  </div>
+async function saveUser(e) {
+  e.preventDefault();
+  const id = document.getElementById('editUserId').value;
+  const body = {
+    email: document.getElementById('editEmail').value,
+    role: document.getElementById('editRole').value,
+    industry: document.getElementById('editIndustry').value,
+    linkedin_profile: document.getElementById('editLinkedin').value,
+    account_status: document.getElementById('editStatus').value
+  };
+  const r = await fetch('/admin/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.ok) { alert('User updated'); closeEditUserModal(); loadDirectory(); loadTermsUsers(); }
+  else { alert('Failed to update'); }
+}
 
-  <!-- Edit User Modal -->
-  <div id="editUserModal" class="fixed inset-0 z-50 hidden">
-    <div class="modal-backdrop absolute inset-0" onclick="closeEditUserModal()"></div>
-    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h3 class="text-lg font-bold text-slate-900 mb-4">Edit User</h3>
-        <form id="editUserForm" onsubmit="saveUser(event)">
-          <input type="hidden" id="editUserId">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input type="email" id="editUserEmail" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
-              <select id="editUserRole" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
-                <option value="employer">Employer</option>
-                <option value="reviewer">Reviewer</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Industry</label>
-              <input type="text" id="editUserIndustry" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900" required>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile</label>
-              <input type="text" id="editUserLinkedin" class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900">
-            </div>
-          </div>
-          <div class="flex gap-3 mt-6">
-            <button type="button" onclick="closeEditUserModal()" class="flex-1 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-              Cancel
-            </button>
-            <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-black hover:bg-slate-800 rounded-xl transition-all">
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+// ─── User Profile View ───
+async function viewProfile(uid) {
+  const r = await fetch('/admin/users');
+  const users = await r.json();
+  const u = users.find(x => x.id === uid);
+  if (!u) return;
 
-  <script>
-    // Tab switching
-    function switchTab(tabName) {
-      // Hide all content
-      document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
-      // Remove active state from all tabs
-      document.querySelectorAll('[id^="tab-"]').forEach(el => {
-        el.classList.remove('text-slate-900', 'border-slate-900');
-        el.classList.add('text-slate-600', 'border-transparent');
-      });
-      
-      // Show selected content
-      document.getElementById(`content-${tabName}`).classList.remove('hidden');
-      // Activate selected tab
-      const activeTab = document.getElementById(`tab-${tabName}`);
-      activeTab.classList.remove('text-slate-600', 'border-transparent');
-      activeTab.classList.add('text-slate-900', 'border-slate-900');
-      
-      // Load data for the tab
-      if (tabName === 'pendingPayments') loadPendingPayments();
-      else if (tabName === 'pendingProofs') loadPendingProofs();
-      else if (tabName === 'users') loadUsers();
-    }
+  const content = document.getElementById('profileContent');
+  content.innerHTML = `
+    <p><strong>ID:</strong> ${u.id}</p>
+    <p><strong>Email:</strong> ${u.email}</p>
+    <p><strong>Role:</strong> ${u.role}</p>
+    <p><strong>Industry:</strong> ${u.industry}</p>
+    <p><strong>LinkedIn:</strong> ${u.linkedin_profile||'N/A'}</p>
+    <p><strong>Status:</strong> ${u.account_status||'Approved'}</p>
+    <p><strong>Google ID:</strong> ${u.google_id||'N/A'}</p>
+    <p><strong>LinkedIn ID:</strong> ${u.linkedin_id||'N/A'}</p>
+    <hr class="my-2">
+    ${u.role === 'employer' ? `
+      <p class="text-xs text-slate-500">Employer Specs:</p>
+      <p>Business Name: ${u.b_name||'N/A'}</p>
+      <p>Role: ${u.b_role||'N/A'}</p>
+      <p>Company: ${u.b_company||'N/A'}</p>
+      <p>Website: ${u.b_website||'N/A'}</p>
+      <p>Platform Focus: ${u.b_platform_focus||'N/A'}</p>
+      <p>Contact: ${u.b_contact||'N/A'}</p>
+    ` : u.role === 'reviewer' ? `
+      <p class="text-xs text-slate-500">Reviewer Specs:</p>
+      <p>Experience: ${u.a_experience||'N/A'}</p>
+      <p>Daily Tools: ${u.a_daily_tools||'N/A'}</p>
+      <p>Country: ${u.a_country||'N/A'}</p>
+      <p>Payout Method: ${u.a_payout_method||'N/A'}</p>
+      <p>Contact: ${u.a_contact||'N/A'}</p>
+    ` : ''}
+    <p class="text-xs text-slate-400 mt-2">Created: ${new Date(u.created_at).toLocaleString()}</p>
+  `;
+  document.getElementById('profileModal').classList.remove('hidden');
+}
 
-    // Load dashboard data
-    async function loadDashboardData() {
-      const response = await fetch('/admin/dashboard-data');
-      if (response.ok) {
-        const data = await response.json();
-        document.getElementById('totalRevenue').textContent = `$${data.total_revenue.toFixed(2)}`;
-        document.getElementById('netProfit').textContent = `$${data.net_profit.toFixed(2)}`;
-        document.getElementById('pendingPayments').textContent = data.pending_payments_count;
-        document.getElementById('pendingProofs').textContent = data.pending_proofs_count;
-      } else {
-        window.location.href = '/login.html';
-      }
-    }
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.add('hidden');
+}
 
-    // Load pending payments
-    async function loadPendingPayments() {
-      const response = await fetch('/admin/pending-payments');
-      if (response.ok) {
-        const campaigns = await response.json();
-        renderPendingPayments(campaigns);
-      }
-    }
+// ─── Delete User (double confirm) ───
+async function deleteUser(uid) {
+  if (!confirm('⚠️ Step 1/2: Are you sure you want to TERMINATE this user?')) return;
+  if (!confirm('⚠️ Step 2/2: This will DELETE all campaigns AND applications. CANNOT BE UNDONE. Proceed?')) return;
+  const r = await fetch('/admin/users/' + uid, { method: 'DELETE' });
+  if (r.ok) { alert('User terminated'); loadDirectory(); loadTermsUsers(); }
+  else { alert('Delete failed'); }
+}
 
-    function renderPendingPayments(campaigns) {
-      const container = document.getElementById('pendingPaymentsList');
-      
-      if (campaigns.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400">
-            <p>No pending payments.</p>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = campaigns.map(campaign => `
-        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h3 class="font-semibold text-slate-900">${campaign.product_name}</h3>
-              <div class="flex items-center gap-3 mt-1">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${campaign.platform}</span>
-                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">${campaign.industry}</span>
-              </div>
-            </div>
-            <div class="text-right">
-              <p class="text-lg font-bold text-slate-900">$${(campaign.budget_usd || 0).toFixed(2)}</p>
-              <p class="text-sm text-slate-500">${campaign.employer_email}</p>
-            </div>
-          </div>
-          
-          <div class="flex items-center justify-between">
-            <a href="${campaign.product_url || '#'}" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm">${campaign.product_url || 'No URL'}</a>
-            <button onclick="confirmPayment(${campaign.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-lg">
-              ✓ Confirm Gumroad Paid
-            </button>
-          </div>
-        </div>
-      `).join('');
-    }
+// ─── Lightbox ───
+function openLightbox(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxModal').classList.remove('hidden');
+}
+function closeLightbox() {
+  document.getElementById('lightboxModal').classList.add('hidden');
+}
 
-    async function confirmPayment(campaignId) {
-      if (!confirm('Are you sure you want to confirm this payment?')) return;
-      
-      const response = await fetch(`/admin/campaigns/${campaignId}/confirm-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (response.ok) {
-        alert('Payment confirmed! Campaign is now active.');
-        loadPendingPayments();
-        loadDashboardData();
-      } else {
-        alert('Failed to confirm payment');
-      }
-    }
+// ─── Logout ───
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
 
-    // Load pending proofs
-    async function loadPendingProofs() {
-      const response = await fetch('/admin/pending-proofs');
-      if (response.ok) {
-        const applications = await response.json();
-        renderPendingProofs(applications);
-      }
-    }
-
-    function renderPendingProofs(applications) {
-      const container = document.getElementById('pendingProofsList');
-      
-      if (applications.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400">
-            <p>No pending proofs.</p>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = applications.map(app => `
-        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h3 class="font-semibold text-slate-900">${app.product_name}</h3>
-              <div class="flex items-center gap-3 mt-1">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${app.platform}</span>
-                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${app.reviewer_email}</span>
-              </div>
-            </div>
-            <div class="relative">
-              <img src="${app.screenshot_url}" alt="Proof" class="w-24 h-24 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity" onclick="openImageModal('${app.screenshot_url}')">
-              <div class="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 rounded-lg transition-all cursor-pointer" onclick="openImageModal('${app.screenshot_url}')">
-                <svg class="w-6 h-6 text-white opacity-0 hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div class="flex items-center gap-3">
-            <input type="text" id="giftCard-${app.id}" placeholder="Enter Amazon Code Here..." class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent">
-            <button onclick="verifyAndPay(${app.id})" class="px-6 py-2.5 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all shadow-lg shadow-black/20">
-              Verify & Disburse
-            </button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function openImageModal(imageUrl) {
-      document.getElementById('modalImage').src = imageUrl;
-      document.getElementById('imageModal').classList.remove('hidden');
-    }
-
-    function closeImageModal() {
-      document.getElementById('imageModal').classList.add('hidden');
-    }
-
-    async function verifyAndPay(applicationId) {
-      const giftCardCode = document.getElementById(`giftCard-${applicationId}`).value.trim();
-      
-      if (!giftCardCode) {
-        alert('Please enter the Amazon gift card code');
-        return;
-      }
-      
-      if (!confirm('Are you sure you want to verify this proof and release the payout?')) return;
-      
-      const response = await fetch(`/admin/applications/${applicationId}/verify-and-pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gift_card_code: giftCardCode })
-      });
-      
-      if (response.ok) {
-        alert('Proof verified and gift card sent successfully!');
-        loadPendingProofs();
-        loadDashboardData();
-      } else {
-        alert('Failed to verify and pay');
-      }
-    }
-
-    // Load users
-    async function loadUsers() {
-      const search = document.getElementById('userSearch').value;
-      const url = search ? `/admin/users?search=${encodeURIComponent(search)}` : '/admin/users';
-      
-      const response = await fetch(url);
-      if (response.ok) {
-        const users = await response.json();
-        renderUsers(users);
-      }
-    }
-
-    function renderUsers(users) {
-      const tbody = document.getElementById('usersTableBody');
-      
-      if (users.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="text-center py-12 text-slate-400">
-              <p>No users found.</p>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-      
-      tbody.innerHTML = users.map(user => `
-        <tr class="border-b border-slate-50 hover:bg-slate-50">
-          <td class="py-3 px-4 text-sm text-slate-900">${user.id}</td>
-          <td class="py-3 px-4 text-sm text-slate-900">${user.email}</td>
-          <td class="py-3 px-4">
-            <span class="px-2 py-0.5 text-xs font-medium rounded-full ${
-              user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-              user.role === 'employer' ? 'bg-blue-100 text-blue-700' :
-              'bg-green-100 text-green-700'
-            }">${user.role}</span>
-          </td>
-          <td class="py-3 px-4 text-sm text-slate-900">${user.industry}</td>
-          <td class="py-3 px-4">
-            <a href="${user.linkedin_profile || '#'}" target="_blank" rel="noopener noreferrer" class="${user.linkedin_profile ? 'text-blue-600 hover:text-blue-700 text-sm' : 'text-slate-400 text-sm'}">
-              ${user.linkedin_profile ? 'LinkedIn' : 'N/A'}
-            </a>
-          </td>
-          <td class="py-3 px-4 text-sm text-slate-500">${new Date(user.created_at).toLocaleDateString()}</td>
-          <td class="py-3 px-4">
-            <div class="flex items-center gap-2">
-              <button onclick="editUser(${user.id})" class="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" title="Edit Industry">
-                🔧
-              </button>
-              <button onclick="deleteUser(${user.id})" class="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all" title="Terminate User">
-                🗑️
-              </button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function editUser(userId) {
-      // Find user data (in real app, fetch from API)
-      const users = document.querySelectorAll('#usersTableBody tr');
-      users.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells[0].textContent.trim() === userId.toString()) {
-          document.getElementById('editUserId').value = userId;
-          document.getElementById('editUserEmail').value = cells[1].textContent.trim();
-          document.getElementById('editUserRole').value = cells[2].querySelector('span').textContent.trim().toLowerCase();
-          document.getElementById('editUserIndustry').value = cells[3].textContent.trim();
-          document.getElementById('editUserModal').classList.remove('hidden');
-        }
-      });
-    }
-
-    function closeEditUserModal() {
-      document.getElementById('editUserModal').classList.add('hidden');
-    }
-
-    async function saveUser(event) {
-      event.preventDefault();
-      
-      const userId = document.getElementById('editUserId').value;
-      const userData = {
-        email: document.getElementById('editUserEmail').value,
-        role: document.getElementById('editUserRole').value,
-        industry: document.getElementById('editUserIndustry').value,
-        linkedin_profile: document.getElementById('editUserLinkedin').value
-      };
-      
-      const response = await fetch(`/admin/users/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-      
-      if (response.ok) {
-        alert('User updated successfully!');
-        closeEditUserModal();
-        loadUsers();
-      } else {
-        alert('Failed to update user');
-      }
-    }
-
-    async function deleteUser(userId) {
-      if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
-      
-      const response = await fetch(`/admin/users/${userId}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        alert('User deleted successfully!');
-        loadUsers();
-      } else {
-        alert('Failed to delete user');
-      }
-    }
-
-    // Logout
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login.html';
-    }
-
-    // Initialize
-    loadDashboardData();
-    switchTab('pendingPayments');
-  </script>
+// ─── Init ───
+loadDashboard();
+switchPanel('config');
+</script>
 </body>
 </html>

@@ -3,348 +3,206 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaSTrust - Tester Dashboard</title>
+  <title>SaaSTrust — Reviewer Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .active-tab {
-      border-bottom: 2px solid #2563eb;
-      color: #1e40af;
-    }
+    body{font-family:'Inter',system-ui,sans-serif}
+    .tab-active{border-bottom:2px solid #000;color:#000;font-weight:600}
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-  <!-- Header -->
   <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
+        <h1 class="text-xl font-extrabold tracking-tight text-slate-900">SaaSTrust.net</h1>
         <span class="px-2 py-1 bg-green-100 text-green-600 text-xs font-medium rounded-full">Reviewer</span>
       </div>
       <div class="flex items-center gap-4">
         <span class="text-sm text-slate-500" id="userEmail"></span>
-        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-          Logout
-        </button>
+        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">Logout</button>
       </div>
     </div>
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-8">
     <!-- Balance Card -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-500/20 p-6 mb-8 text-white">
+    <div class="bg-gradient-to-r from-black to-gray-800 rounded-2xl shadow-xl shadow-black/20 p-6 mb-8 text-white">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-blue-100 text-sm mb-1">Account Balance</p>
+          <p class="text-gray-300 text-sm mb-1">Account Balance</p>
           <p class="text-3xl font-bold" id="balance">$0.00</p>
-          <p class="text-blue-100 text-sm mt-2">Approved reviews: <span id="approvedCount">0</span></p>
+          <p class="text-gray-300 text-sm mt-2">Completed reviews: <span id="completedCount">0</span></p>
         </div>
-        <button onclick="requestPayout()" class="px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-slate-100 transition-all shadow-lg">
+        <button onclick="requestPayout()" class="px-6 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all shadow-lg">
           Request Payout
         </button>
       </div>
     </div>
 
-    <!-- Matched Campaigns Section -->
+    <!-- Matched Campaigns -->
     <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8 mb-8">
-      <div class="flex items-center gap-3 mb-6">
-        <span class="text-2xl">🎯</span>
-        <div>
-          <h2 class="text-lg font-bold text-slate-900">Matched for Your Profile</h2>
-          <p class="text-sm text-slate-500">Jobs perfectly aligned with your industry expertise</p>
-        </div>
-      </div>
-      
+      <h2 class="text-lg font-bold text-slate-900 mb-6">Matched for Your Profile</h2>
       <div id="matchedList" class="space-y-4">
-        <div class="text-center py-12 text-slate-400">
-          <p>No matched jobs available at this time.</p>
-        </div>
+        <div class="text-center py-12 text-slate-400">No matched jobs available at this time.</div>
       </div>
     </div>
 
-    <!-- My Applications Section -->
+    <!-- My Applications -->
     <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
       <h2 class="text-lg font-bold text-slate-900 mb-6">My Tasks</h2>
-      
-      <!-- Tabs -->
       <div class="flex border-b border-slate-100 mb-6">
-        <button onclick="showTab('assigned')" class="px-6 py-3 text-sm font-medium active-tab" id="tab-assigned">
-          In Progress
-        </button>
-        <button onclick="showTab('submitted')" class="px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700" id="tab-submitted">
-          Under Review
-        </button>
-        <button onclick="showTab('approved')" class="px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700" id="tab-approved">
-          Completed
-        </button>
+        <button onclick="showTab('In Progress')" id="tab-In Progress" class="tab-active px-5 py-3 text-sm">In Progress</button>
+        <button onclick="showTab('Under Review')" id="tab-Under Review" class="px-5 py-3 text-sm text-slate-500">Under Review</button>
+        <button onclick="showTab('Pending exchange')" id="tab-Pending exchange" class="px-5 py-3 text-sm text-slate-500">Pending Exchange</button>
+        <button onclick="showTab('Completed')" id="tab-Completed" class="px-5 py-3 text-sm text-slate-500">Completed</button>
       </div>
-      
-      <!-- Tab Content -->
       <div id="applicationsList" class="space-y-4">
-        <div class="text-center py-12 text-slate-400">
-          <p>No tasks found.</p>
-        </div>
+        <div class="text-center py-12 text-slate-400">No tasks found.</div>
       </div>
     </div>
   </main>
 
   <!-- Upload Modal -->
-  <div id="uploadModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+  <div id="uploadModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-      <h3 class="text-lg font-bold text-slate-900 mb-4">Upload Proof Screenshot</h3>
-      <input type="file" id="proofFile" accept="image/*" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+      <h3 class="text-lg font-bold mb-4">Upload Proof Screenshot</h3>
+      <input type="file" id="proofFile" accept="image/*" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-black file:text-white hover:file:bg-gray-800">
       <div class="flex gap-3">
-        <button onclick="closeModal()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl">
-          Cancel
-        </button>
-        <button onclick="submitProof()" class="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl">
-          Submit Proof
-        </button>
+        <button onclick="closeModal()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl">Cancel</button>
+        <button onclick="submitProof()" class="flex-1 px-4 py-2 bg-black text-white font-medium rounded-xl">Submit Proof</button>
       </div>
     </div>
   </div>
 
   <script>
-    let currentTab = 'assigned';
+    let currentTab = 'In Progress';
     let currentApplicationId = null;
     let applications = [];
 
-    // Load user info
     async function loadUser() {
-      const response = await fetch('/api/auth/user');
-      if (response.ok) {
-        const user = await response.json();
-        document.getElementById('userEmail').textContent = user.email;
-        loadMatched();
-        loadApplications();
-        loadBalance();
-      } else {
-        window.location.href = '/login.html';
-      }
+      const r = await fetch('/api/auth/user');
+      if (r.ok) { const u = await r.json(); document.getElementById('userEmail').textContent = u.email; loadMatched(); loadApplications(); loadBalance(); }
+      else { window.location.href = '/login.html'; }
     }
 
-    // Load matched campaigns
     async function loadMatched() {
-      const response = await fetch('/api/tester/matched');
-      if (response.ok) {
-        const matched = await response.json();
-        renderMatched(matched);
-      }
-    }
-
-    // Render matched campaigns
-    function renderMatched(matched) {
+      const r = await fetch('/api/tester/matched');
+      const campaigns = await r.json();
       const container = document.getElementById('matchedList');
-      
-      if (matched.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400">
-            <p>No matched jobs available at this time.</p>
-          </div>
-        `;
+      if (campaigns.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400">No matched jobs available at this time.</div>';
         return;
       }
-      
-      container.innerHTML = matched.map(campaign => `
-        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+      container.innerHTML = campaigns.map(c => `
+        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md">
           <div class="flex items-start justify-between mb-4">
             <div>
-              <h3 class="font-semibold text-slate-900">${campaign.product_name}</h3>
-              <div class="flex items-center gap-3 mt-1">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${campaign.target_site}</span>
-                <span class="px-2 py-0.5 bg-green-100 text-green-600 text-xs font-medium rounded-full">${campaign.req_industry}</span>
+              <h3 class="font-semibold text-slate-900">${c.product_name}</h3>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${c.target_platform}</span>
+                <span class="px-2 py-0.5 bg-green-100 text-green-600 text-xs rounded-full">${c.target_industry}</span>
               </div>
             </div>
-            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-              ${campaign.remaining_slots} slots left
-            </span>
+            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${c.remaining_slots} slots left</span>
           </div>
-          
           <div class="flex items-center justify-between">
             <p class="text-sm text-slate-500">Complete a review for $20</p>
-            <button onclick="acceptTask(${campaign.id})" class="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all shadow-lg shadow-green-500/20">
-              Accept Task
-            </button>
+            <button onclick="acceptTask(${c.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-all shadow-lg">Accept Task</button>
           </div>
         </div>
       `).join('');
     }
 
-    // Load applications
     async function loadApplications() {
-      const response = await fetch('/api/tester/my-applications');
-      if (response.ok) {
-        applications = await response.json();
-        showTab(currentTab);
-      }
+      const r = await fetch('/api/tester/my-applications');
+      applications = await r.json();
+      showTab(currentTab);
     }
 
-    // Show tab
     function showTab(tab) {
       currentTab = tab;
-      
-      // Update tab styles
-      document.querySelectorAll('[id^="tab-"]').forEach(t => {
-        t.classList.remove('active-tab');
-        t.classList.remove('text-blue-700');
-        t.classList.add('text-slate-500');
-      });
-      document.getElementById(`tab-${tab}`).classList.add('active-tab');
-      
-      // Filter and render
-      const filtered = applications.filter(a => a.status === tab);
-      renderApplications(filtered);
-    }
+      document.querySelectorAll('[id^="tab-"]').forEach(t => { t.classList.remove('tab-active'); t.classList.add('text-slate-500'); });
+      document.getElementById('tab-' + tab).classList.add('tab-active');
+      document.getElementById('tab-' + tab).classList.remove('text-slate-500');
 
-    // Render applications
-    function renderApplications(apps) {
+      const filtered = applications.filter(a => a.status === tab);
       const container = document.getElementById('applicationsList');
-      
-      if (apps.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400">
-            <p>No tasks found.</p>
-          </div>
-        `;
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400">No tasks found.</div>';
         return;
       }
-      
-      container.innerHTML = apps.map(app => `
-        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+      container.innerHTML = filtered.map(a => `
+        <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md">
           <div class="flex items-start justify-between mb-4">
             <div>
-              <h3 class="font-semibold text-slate-900">${app.product_name}</h3>
-              <div class="flex items-center gap-3 mt-1">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${app.target_site}</span>
-                <span class="px-2 py-0.5 ${getStatusColor(app.status)} text-xs font-medium rounded-full">
-                  ${getStatusLabel(app.status)}
-                </span>
+              <h3 class="font-semibold text-slate-900">${a.product_name}</h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${a.target_platform}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full ${statusColor(a.status)}">${a.status}</span>
               </div>
             </div>
           </div>
-          
-          ${app.status === 'assigned' ? `
+          ${a.status === 'In Progress' ? `
             <div class="flex items-center justify-between">
-              <p class="text-sm text-slate-500">Please complete the review and submit your screenshot</p>
-              <button onclick="openUploadModal(${app.id})" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">
-                Upload G2 Screenshot
-              </button>
+              <p class="text-sm text-slate-500">Complete the review and submit your screenshot</p>
+              <button onclick="openUploadModal(${a.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800">Upload Screenshot</button>
             </div>
           ` : ''}
-          
-          ${app.status === 'submitted' ? `
-            <p class="text-sm text-green-600">Your submission is under review. We'll notify you when approved!</p>
-          ` : ''}
-          
-          ${app.status === 'approved' ? `
+          ${a.status === 'Under Review' ? '<p class="text-sm text-amber-600">Your submission is under review. We\'ll notify you soon!</p>' : ''}
+          ${a.status === 'Pending exchange' ? '<p class="text-sm text-blue-600">Admin is processing your payout...</p>' : ''}
+          ${a.status === 'Completed' ? `
             <div class="flex items-center justify-between">
-              <p class="text-sm text-green-600">✅ Review approved! $20 added to your balance</p>
+              <p class="text-sm text-green-600">$20 added to your balance!</p>
+              ${a.gift_card_code ? `<span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-mono rounded-full">${a.gift_card_code}</span>` : ''}
             </div>
           ` : ''}
         </div>
       `).join('');
     }
 
-    function getStatusColor(status) {
-      switch(status) {
-        case 'assigned': return 'bg-blue-100 text-blue-700';
-        case 'submitted': return 'bg-amber-100 text-amber-700';
-        case 'approved': return 'bg-green-100 text-green-700';
+    function statusColor(s) {
+      switch(s) {
+        case 'In Progress': return 'bg-blue-100 text-blue-700';
+        case 'Under Review': return 'bg-amber-100 text-amber-700';
+        case 'Pending exchange': return 'bg-purple-100 text-purple-700';
+        case 'Completed': return 'bg-green-100 text-green-700';
         default: return 'bg-slate-100 text-slate-700';
       }
     }
 
-    function getStatusLabel(status) {
-      switch(status) {
-        case 'assigned': return 'In Progress';
-        case 'submitted': return 'Under Review';
-        case 'approved': return 'Completed';
-        default: return status;
-      }
-    }
-
-    // Accept task
-    async function acceptTask(campaignId) {
-      const response = await fetch('/api/tester/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaign_id: campaignId })
+    async function acceptTask(cid) {
+      const r = await fetch('/api/tester/apply', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({campaign_id: cid})
       });
-      
-      if (response.ok) {
-        alert('Task accepted successfully!');
-        loadMatched();
-        loadApplications();
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Failed to accept task');
-      }
+      const d = await r.json();
+      if (r.ok) { alert('Task accepted!'); loadMatched(); loadApplications(); }
+      else { alert(d.error || 'Failed'); }
     }
 
-    // Open upload modal
-    function openUploadModal(applicationId) {
-      currentApplicationId = applicationId;
-      document.getElementById('uploadModal').classList.remove('hidden');
-    }
+    function openUploadModal(appId) { currentApplicationId = appId; document.getElementById('uploadModal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('uploadModal').classList.add('hidden'); document.getElementById('proofFile').value = ''; currentApplicationId = null; }
 
-    // Close modal
-    function closeModal() {
-      document.getElementById('uploadModal').classList.add('hidden');
-      document.getElementById('proofFile').value = '';
-      currentApplicationId = null;
-    }
-
-    // Submit proof
     async function submitProof() {
-      const fileInput = document.getElementById('proofFile');
-      const file = fileInput.files[0];
-      
-      if (!file) {
-        alert('Please select a screenshot file');
-        return;
-      }
-      
-      const formData = new FormData();
-      formData.append('application_id', currentApplicationId);
-      formData.append('screenshot', file);
-      
-      const response = await fetch('/api/tester/submit', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (response.ok) {
-        alert('Proof submitted successfully! Waiting for review.');
-        closeModal();
-        loadApplications();
-      } else {
-        alert('Failed to submit proof');
-      }
+      const file = document.getElementById('proofFile').files[0];
+      if (!file) { alert('Please select a screenshot'); return; }
+      const fd = new FormData();
+      fd.append('application_id', currentApplicationId);
+      fd.append('screenshot', file);
+      const r = await fetch('/api/tester/submit', { method:'POST', body:fd });
+      if (r.ok) { alert('Proof submitted! Under review.'); closeModal(); loadApplications(); }
+      else { alert('Submission failed'); }
     }
 
-    // Load balance
     async function loadBalance() {
-      const response = await fetch('/api/tester/balance');
-      if (response.ok) {
-        const data = await response.json();
-        document.getElementById('balance').textContent = `$${data.balance.toFixed(2)}`;
-        document.getElementById('approvedCount').textContent = data.balance / 20;
-      }
+      const r = await fetch('/api/tester/balance');
+      if (r.ok) { const d = await r.json(); document.getElementById('balance').textContent = '$' + d.balance.toFixed(2); document.getElementById('completedCount').textContent = d.completed_tasks; }
     }
 
-    // Request payout
-    function requestPayout() {
-      alert('Payout request sent! We will process your payment within 3-5 business days.');
-    }
+    function requestPayout() { alert('Payout request sent! Processing within 3-5 business days.'); }
+    async function logout() { await fetch('/api/auth/logout', {method:'POST'}); window.location.href = '/login.html'; }
 
-    // Logout
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login.html';
-    }
-
-    // Initialize
     loadUser();
   </script>
 </body>

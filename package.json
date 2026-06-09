@@ -1,22 +1,27 @@
 {
   "name": "saastrust-node",
-  "version": "1.0.0",
-  "description": "SaaSTrust - Authentic B2B Reviews Platform",
+  "version": "3.1.0",
+  "description": "SaaSTrust - Authentic B2B Reviews Platform (v3.1 Production Spec)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["saas", "reviews", "b2b"],
+  "keywords": [
+    "saas",
+    "reviews",
+    "b2b"
+  ],
   "author": "SaaSTrust",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.17.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "mysql2": "^3.9.0",
-    "dotenv": "^16.3.1",
-    "bcryptjs": "^2.4.3",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.9.0",
     "resend": "^3.2.0"
   }
 }

@@ -3,136 +3,179 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaSTrust - Register</title>
+  <title>SaaSTrust — Register</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-  </style>
+  <style>body{font-family:'Inter',system-ui,sans-serif}</style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-  <div class="w-full max-w-xl mx-auto px-6 py-8">
-    <!-- Logo -->
+  <div class="w-full max-w-2xl mx-auto px-6 py-8">
     <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold text-slate-900">SaaSTrust.net</h1>
-      <p class="text-slate-500 mt-2">Authentic B2B Reviews Platform</p>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">SaaSTrust.net</h1>
+      <p class="text-slate-500 mt-1">Authentic B2B Reviews Platform</p>
     </div>
 
-    <!-- Register Card -->
     <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
       <h2 class="text-xl font-bold text-slate-900 mb-6">Create Account</h2>
-      
+
       <form id="registerForm" class="space-y-5">
-        <!-- Role Selection -->
+        <!-- Role -->
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-2">Account Type</label>
           <div class="grid grid-cols-2 gap-3">
-            <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-              <input type="radio" name="role" value="employer" class="w-4 h-4 text-blue-600" required>
+            <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-black transition-all has-[:checked]:border-black has-[:checked]:bg-slate-50">
+              <input type="radio" name="role" value="employer" class="w-4 h-4 accent-black" required onchange="toggleRoleFields()">
               <span class="ml-3 font-medium text-slate-700">I'm an Employer</span>
             </label>
-            <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-              <input type="radio" name="role" value="reviewer" class="w-4 h-4 text-blue-600" required>
+            <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-black transition-all has-[:checked]:border-black has-[:checked]:bg-slate-50">
+              <input type="radio" name="role" value="reviewer" class="w-4 h-4 accent-black" required onchange="toggleRoleFields()">
               <span class="ml-3 font-medium text-slate-700">I'm a Reviewer</span>
             </label>
           </div>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Email</label>
-          <input 
-            type="email" 
-            id="email"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            placeholder="your@email.com"
-            required
-          />
+
+        <!-- Core Fields -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent" placeholder="your@email.com" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" id="password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent" placeholder="········" required>
+          </div>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Password</label>
-          <input 
-            type="password" 
-            id="password"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            placeholder="••••••••"
-            required
-          />
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Industry <span class="text-red-500">*</span></label>
+            <select id="industry" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent" required>
+              <option value="">Select your industry</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="HR">HR / Human Resources</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Development">Software Development</option>
+              <option value="Finance">Finance / FinTech</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Education">Education / EdTech</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="SaaS">SaaS / B2B Software</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile URL <span class="text-red-500">*</span></label>
+            <input type="url" id="linkedin" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent" placeholder="https://linkedin.com/in/your-profile" required>
+          </div>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Industry</label>
-          <select 
-            id="industry"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            required
-          >
-            <option value="">Select your industry</option>
-            <option value="E-commerce">E-commerce</option>
-            <option value="HR">HR / Human Resources</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Development">Software Development</option>
-            <option value="Finance">Finance / FinTech</option>
-            <option value="Healthcare">Healthcare</option>
-            <option value="Education">Education / EdTech</option>
-            <option value="Real Estate">Real Estate</option>
-            <option value="SaaS">SaaS / B2B Software</option>
-            <option value="Other">Other</option>
-          </select>
+
+        <!-- Employer Fields -->
+        <div id="employerFields" class="space-y-4 hidden border-t border-slate-100 pt-5 mt-2">
+          <p class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Business Profile</p>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label><input type="text" id="b_name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="John Smith"></div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Job Role</label><input type="text" id="b_role" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="CEO / Founder / CMO"></div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Company Name</label><input type="text" id="b_company" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="Acme Inc."></div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Company Website</label><input type="url" id="b_website" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="https://acme.com"></div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Platform Focus</label><input type="text" id="b_platform_focus" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="G2, Capterra, Trustpilot"></div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Contact Phone</label><input type="text" id="b_contact" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="+1 (555) 000-0000"></div>
+          </div>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">LinkedIn Profile URL <span class="text-red-500">*</span></label>
-          <input 
-            type="url" 
-            id="linkedin_url"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            placeholder="https://linkedin.com/in/your-profile"
-            required
-          />
+
+        <!-- Reviewer Fields -->
+        <div id="reviewerFields" class="space-y-4 hidden border-t border-slate-100 pt-5 mt-2">
+          <p class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Expert Profile</p>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Experience Level</label>
+              <select id="a_experience" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black">
+                <option value="">Select level</option>
+                <option value="1-3 years">1-3 years</option>
+                <option value="3-5 years">3-5 years</option>
+                <option value="5-10 years">5-10 years</option>
+                <option value="10+ years">10+ years</option>
+              </select>
+            </div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Country</label><input type="text" id="a_country" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="United States"></div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Daily Tools (comma-separated)</label>
+            <input type="text" id="a_daily_tools" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="Salesforce, HubSpot, Slack, Notion">
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Payout Method</label>
+              <select id="a_payout_method" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black">
+                <option value="">Select method</option>
+                <option value="Amazon Gift Card">Amazon Gift Card</option>
+                <option value="Wise">Wise</option>
+                <option value="PayPal">PayPal</option>
+              </select>
+            </div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">Contact Phone</label><input type="text" id="a_contact" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="+1 (555) 000-0000"></div>
+          </div>
         </div>
-        
-        <button 
-          type="submit"
-          class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
-        >
+
+        <button type="submit" class="w-full py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-all shadow-lg">
           Create Account
         </button>
       </form>
 
       <div class="mt-6 text-center">
-        <p class="text-slate-500 text-sm">
-          Already have an account? 
-          <a href="/login.html" class="text-blue-600 hover:text-blue-700 font-medium">Sign in</a>
-        </p>
+        <p class="text-slate-500 text-sm">Already have an account? <a href="/login.html" class="text-black hover:text-gray-600 font-medium">Sign in</a></p>
       </div>
     </div>
   </div>
 
   <script>
+    function toggleRoleFields() {
+      const role = document.querySelector('input[name="role"]:checked')?.value;
+      document.getElementById('employerFields').classList.toggle('hidden', role !== 'employer');
+      document.getElementById('reviewerFields').classList.toggle('hidden', role !== 'reviewer');
+    }
+
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const role = document.querySelector('input[name="role"]:checked').value;
-      const industry = document.getElementById('industry').value;
-      const linkedin_profile = document.getElementById('linkedin_url').value;
-      
-      const response = await fetch('/api/register', {
+      const role = document.querySelector('input[name="role"]:checked')?.value;
+      if (!role) return alert('Please select Account Type');
+
+      const body = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role,
+        industry: document.getElementById('industry').value,
+        linkedin_profile: document.getElementById('linkedin').value
+      };
+
+      if (role === 'employer') {
+        Object.assign(body, {
+          b_name: document.getElementById('b_name').value,
+          b_role: document.getElementById('b_role').value,
+          b_company: document.getElementById('b_company').value,
+          b_website: document.getElementById('b_website').value,
+          b_platform_focus: document.getElementById('b_platform_focus').value,
+          b_contact: document.getElementById('b_contact').value
+        });
+      } else {
+        Object.assign(body, {
+          a_experience: document.getElementById('a_experience').value,
+          a_daily_tools: document.getElementById('a_daily_tools').value,
+          a_country: document.getElementById('a_country').value,
+          a_payout_method: document.getElementById('a_payout_method').value,
+          a_contact: document.getElementById('a_contact').value
+        });
+      }
+
+      const r = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role, industry, linkedin_profile })
+        body: JSON.stringify(body)
       });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        alert('Registration successful! Please login.');
-        window.location.href = '/login.html';
-      } else {
-        alert(data.error);
-      }
+
+      const data = await r.json();
+      if (r.ok) { alert('Registration successful! Please login.'); window.location.href = '/login.html'; }
+      else { alert(data.error); }
     });
   </script>
 </body>

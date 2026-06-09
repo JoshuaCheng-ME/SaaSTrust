@@ -3,77 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaSTrust - Client Dashboard</title>
+  <title>SaaSTrust — Employer Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .progress-bar {
-      transition: width 0.5s ease-out;
-    }
-  </style>
+  <style>body{font-family:'Inter',system-ui,sans-serif}.progress-bar{transition:width .5s ease-out}</style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-  <!-- Header -->
   <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-slate-900">SaaSTrust.net</h1>
-        <span class="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">Client</span>
+        <h1 class="text-xl font-extrabold tracking-tight text-slate-900">SaaSTrust.net</h1>
+        <span class="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">Employer</span>
       </div>
       <div class="flex items-center gap-4">
         <span class="text-sm text-slate-500" id="userEmail"></span>
-        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-          Logout
-        </button>
+        <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">Logout</button>
       </div>
     </div>
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-8">
-    <!-- Create Campaign Card -->
+    <!-- Create Campaign -->
     <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8 mb-8">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-slate-900">Create New Campaign</h2>
-        <span class="text-sm text-slate-500">Get authentic reviews for your SaaS</span>
-      </div>
-      
+      <h2 class="text-lg font-bold text-slate-900 mb-6">Create New Campaign</h2>
       <form id="campaignForm" class="space-y-5">
         <div class="grid md:grid-cols-2 gap-5">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Product Name</label>
-            <input 
-              type="text" 
-              id="productName"
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., Acme CRM"
-              required
-            />
+            <input type="text" id="productName" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="e.g., Acme CRM" required>
           </div>
-          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Product URL</label>
+            <input type="url" id="productUrl" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" placeholder="https://acme.com" required>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-3 gap-5">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Target Platform</label>
-            <select 
-              id="targetSite"
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
+            <select id="targetPlatform" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" required>
               <option value="">Select platform</option>
               <option value="G2">G2</option>
               <option value="Capterra">Capterra</option>
               <option value="Trustpilot">Trustpilot</option>
+              <option value="Product Hunt">Product Hunt</option>
+              <option value="Other">Other</option>
             </select>
           </div>
-        </div>
-        
-        <div class="grid md:grid-cols-2 gap-5">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Target Industry</label>
-            <select 
-              id="reqIndustry"
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
+            <select id="targetIndustry" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" required>
               <option value="">Select industry</option>
               <option value="E-commerce">E-commerce</option>
               <option value="HR">HR / Human Resources</option>
@@ -86,206 +64,141 @@
               <option value="SaaS">SaaS / B2B Software</option>
             </select>
           </div>
-          
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Total Reviews Needed</label>
-            <input 
-              type="number" 
-              id="totalSlots"
-              min="1" max="50"
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., 10"
-              required
-            />
+            <label class="block text-sm font-medium text-slate-700 mb-2">Reviews Needed</label>
+            <select id="reviewsNeeded" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black" required>
+              <option value="">Select quantity</option>
+              <option value="5">5 Reviews</option>
+              <option value="10">10 Reviews</option>
+              <option value="20">20 Reviews</option>
+            </select>
           </div>
         </div>
-        
-        <button 
-          type="submit"
-          class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
-        >
-          + Create New Campaign
-        </button>
+        <p class="text-xs text-slate-400 italic">Please enter the EXACT email used for your Gumroad purchase for automatic matching.</p>
+        <button type="submit" class="px-6 py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-all shadow-lg">+ Create New Campaign</button>
       </form>
     </div>
 
-    <!-- My Jobs Section -->
+    <!-- My Campaigns -->
     <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-slate-900">My Campaigns</h2>
-        <div class="flex items-center gap-3">
-          <button onclick="downloadInvoice()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-            Download Invoice
-          </button>
-        </div>
-      </div>
-      
-      <!-- Jobs List -->
+      <h2 class="text-lg font-bold text-slate-900 mb-6">My Campaigns</h2>
       <div id="jobsList" class="space-y-4">
-        <div class="text-center py-12 text-slate-400">
-          <p>No campaigns found. Create your first campaign above!</p>
-        </div>
+        <div class="text-center py-12 text-slate-400">No campaigns found. Create your first campaign above!</div>
       </div>
     </div>
   </main>
 
+  <!-- Wire Confirm Modal -->
+  <div id="wireModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeWireModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-6">
+      <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+        <h3 class="text-lg font-bold mb-4">Confirm Wire Transfer</h3>
+        <p class="text-sm text-slate-600 mb-4">Please enter the EXACT email you used for your Gumroad purchase:</p>
+        <input type="email" id="wireGumroadEmail" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-black mb-4" placeholder="your@gumroad.email">
+        <div class="flex gap-3">
+          <button onclick="closeWireModal()" class="flex-1 px-4 py-2 border border-slate-200 text-sm font-medium rounded-xl">Cancel</button>
+          <button onclick="confirmWire()" class="flex-1 px-4 py-2 bg-black text-white text-sm font-semibold rounded-xl" id="wireConfirmBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Load user info
+    let currentWireCampaignId = null;
+
     async function loadUser() {
-      const response = await fetch('/api/auth/user');
-      if (response.ok) {
-        const user = await response.json();
-        document.getElementById('userEmail').textContent = user.email;
-        loadJobs();
-      } else {
-        window.location.href = '/login.html';
-      }
+      const r = await fetch('/api/auth/user');
+      if (r.ok) { document.getElementById('userEmail').textContent = (await r.json()).email; loadJobs(); }
+      else { window.location.href = '/login.html'; }
     }
 
-    // Load jobs
     async function loadJobs() {
-      const response = await fetch('/api/client/my-jobs');
-      if (response.ok) {
-        const jobs = await response.json();
-        renderJobs(jobs);
-      }
-    }
-
-    // Render jobs
-    function renderJobs(jobs) {
+      const r = await fetch('/api/client/my-jobs');
+      const jobs = await r.json();
       const container = document.getElementById('jobsList');
-      
       if (jobs.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400">
-            <p>No campaigns found. Create your first campaign above!</p>
-          </div>
-        `;
+        container.innerHTML = '<div class="text-center py-12 text-slate-400">No campaigns found. Create your first campaign above!</div>';
         return;
       }
-      
-      container.innerHTML = jobs.map(job => {
-        const progress = job.total_slots > 0 ? Math.round((job.completed_reviews / job.total_slots) * 100) : 0;
-        const progressColor = progress === 100 ? 'bg-green-500' : 'bg-blue-600';
-        
-        return `
-          <div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <h3 class="font-semibold text-slate-900">${job.product_name}</h3>
-                <div class="flex items-center gap-3 mt-1">
-                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">${job.platform}</span>
-                  <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">${job.industry}</span>
-                </div>
-              </div>
-              <span class="px-3 py-1 ${getStatusColor(job.status)} text-xs font-medium rounded-full">
-                ${getStatusLabel(job.status)}
-              </span>
-            </div>
-            
-            <!-- Progress Bar -->
-            <div class="mb-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-slate-500">Progress</span>
-                <span class="text-sm font-medium text-slate-700">${job.completed_reviews}/${job.total_slots} reviews</span>
-              </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div class="h-full ${progressColor} progress-bar rounded-full" style="width: ${progress}%"></div>
+      container.innerHTML = jobs.map(j => {
+        const progress = j.reviews_needed > 0 ? Math.round((Number(j.completed_reviews) / j.reviews_needed) * 100) : 0;
+        const color = progress === 100 ? 'bg-green-500' : 'bg-black';
+        return `<div class="border border-slate-100 rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="font-semibold text-slate-900">${j.product_name}</h3>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">${j.target_platform}</span>
+                <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">${j.target_industry}</span>
+                ${j.product_url ? `<a href="${j.product_url}" target="_blank" class="text-xs text-blue-600 hover:underline">Link</a>` : ''}
               </div>
             </div>
-            
-            <!-- Actions -->
-            <div class="flex items-center gap-3">
-              <button onclick="markAsPaid(${job.id})" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                I Have Wired the Money
-              </button>
+            <span class="px-3 py-1 text-xs font-medium rounded-full ${statusBadge(j.status)}">${j.status}</span>
+          </div>
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm text-slate-500">Progress</span>
+              <span class="text-sm font-medium">${j.completed_reviews || 0} / ${j.reviews_needed} reviews</span>
+            </div>
+            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full ${color} progress-bar rounded-full" style="width:${progress}%"></div>
             </div>
           </div>
-        `;
+          ${j.status === 'Pending Payments' ? `
+            <button onclick="openWireModal(${j.id})" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg">I Have Wired the Money</button>
+          ` : ''}
+        </div>`;
       }).join('');
     }
 
-    function getStatusColor(status) {
-      switch(status) {
-        case 'pending_payment': return 'bg-amber-100 text-amber-700';
-        case 'active': return 'bg-green-100 text-green-700';
-        case 'completed': return 'bg-slate-100 text-slate-700';
-        default: return 'bg-slate-100 text-slate-700';
+    function statusBadge(s) {
+      switch(s) {
+        case 'Pending Payments': return 'bg-amber-100 text-amber-700';
+        case 'Pending confirmation': return 'bg-orange-100 text-orange-700';
+        case 'Active': return 'bg-emerald-100 text-emerald-700';
+        case 'Completed': return 'bg-slate-100 text-slate-600';
+        default: return 'bg-slate-100 text-slate-600';
       }
     }
 
-    function getStatusLabel(status) {
-      switch(status) {
-        case 'pending_payment': return 'Pending Payment';
-        case 'active': return 'Active';
-        case 'completed': return 'Completed';
-        default: return status;
-      }
-    }
-
-    // Create campaign
     document.getElementById('campaignForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const productName = document.getElementById('productName').value;
-      const targetSite = document.getElementById('targetSite').value;
-      const reqIndustry = document.getElementById('reqIndustry').value;
-      const totalSlots = document.getElementById('totalSlots').value;
-      
-      const response = await fetch('/api/client/campaign', {
+      const body = {
+        product_name: document.getElementById('productName').value,
+        product_url: document.getElementById('productUrl').value,
+        target_industry: document.getElementById('targetIndustry').value,
+        target_platform: document.getElementById('targetPlatform').value,
+        reviews_needed: parseInt(document.getElementById('reviewsNeeded').value)
+      };
+      const r = await fetch('/api/client/campaign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_name: productName,
-          target_site: targetSite,
-          req_industry: reqIndustry,
-          total_slots: parseInt(totalSlots)
-        })
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body)
       });
-      
-      if (response.ok) {
-        alert('Campaign created successfully!');
-        document.getElementById('campaignForm').reset();
-        loadJobs();
-      } else {
-        alert('Failed to create campaign');
-      }
+      if (r.ok) { alert('Campaign created! Complete payment via Gumroad.'); document.getElementById('campaignForm').reset(); loadJobs(); }
+      else { const d = await r.json(); alert(d.error || 'Failed'); }
     });
 
-    // Mark as paid
-    async function markAsPaid(campaignId) {
-      if (confirm('Are you sure you have wired the payment?')) {
-        try {
-          const response = await fetch(`/api/client/campaign/${campaignId}/wire-confirm`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (response.ok) {
-            alert('Notification sent to Admin. Awaiting verification.');
-            loadJobs();
-          } else {
-            const data = await response.json();
-            alert(data.error || 'Failed to send notification');
-          }
-        } catch (error) {
-          alert('Network error. Please try again.');
-        }
-      }
+    function openWireModal(campaignId) {
+      currentWireCampaignId = campaignId;
+      document.getElementById('wireGumroadEmail').value = '';
+      document.getElementById('wireModal').classList.remove('hidden');
+    }
+    function closeWireModal() { document.getElementById('wireModal').classList.add('hidden'); currentWireCampaignId = null; }
+
+    async function confirmWire() {
+      const email = document.getElementById('wireGumroadEmail').value.trim();
+      const r = await fetch(`/api/client/campaign/${currentWireCampaignId}/wire-confirm`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ gumroad_email: email })
+      });
+      if (r.ok) { alert('Confirmation sent. Admin will verify your payment.'); closeWireModal(); loadJobs(); }
+      else { alert('Failed to send confirmation.'); }
     }
 
-    // Download invoice
-    function downloadInvoice() {
-      alert('Invoice downloaded!\n\nSaaSTrust.net\nBank: Wise (TransferWise)\nAccount: USD\nDetails: Will be sent to your email.');
-    }
-
-    // Logout
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login.html';
-    }
-
-    // Initialize
+    async function logout() { await fetch('/api/auth/logout', {method:'POST'}); window.location.href='/login.html'; }
     loadUser();
   </script>
 </body>
