@@ -179,8 +179,6 @@
         alert(d.error || 'Failed to submit payment');
       }
     }
-      else { window.location.href = '/login.html'; }
-    }
 
     async function loadJobs() {
       const r = await fetch('/api/client/my-jobs');
