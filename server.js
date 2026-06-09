@@ -10,6 +10,8 @@ const { Resend } = require('resend');
 const axios = require('axios');
 
 const db = require('./db');
+const MySQLStore = require('express-mysql-session')(session);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -205,10 +207,21 @@ async function initDB() {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'saastrust-secret-key-2026',
+  key: 'saas_trust_sid',
+  secret: process.env.SESSION_SECRET || '!SaasTrustNet123_Session_Secret',
+  store: new MySQLStore({
+    clearExpired: true,
+    checkExpirationInterval: 900000,   // 15 mins
+    expiration: 86400000,              // 1 day
+    createDatabaseTable: true          // auto-create sessions table
+  }, db.pool),
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    maxAge: 86400000
+  }
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
