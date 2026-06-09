@@ -57,6 +57,17 @@ const invoiceUpload = multer({
 });
 
 // ── Init Database Tables ──
+async function safeAlter(sql) {
+  try {
+    await db.execute(sql);
+    console.log('  Migrated:', sql.substring(0, 60).replace(/\n/g, ' ') + '...');
+  } catch (e) {
+    if (e.code === 'ER_DUP_FIELDNAME' || e.code === 'ER_DUP_KEYNAME' || e.code === 'ER_DUP_KEY')
+      console.log('  Skip (exists):', sql.substring(0, 60).replace(/\n/g, ' '));
+    else throw e;
+  }
+}
+
 async function initDB() {
   try {
     // users
@@ -119,6 +130,42 @@ async function initDB() {
         UNIQUE KEY unique_match (reviewer_id, campaign_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    // ── MIGRATIONS: Add missing columns for existing tables ──
+    console.log('Running schema migrations...');
+
+    // users: new v3.1 columns
+    await safeAlter(`ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN linkedin_id VARCHAR(255) DEFAULT NULL`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_name VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_role VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_company VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_website VARCHAR(255)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_platform_focus VARCHAR(255)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN b_contact VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN a_experience VARCHAR(50)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN a_daily_tools VARCHAR(255)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN a_country VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN a_payout_method VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN a_contact VARCHAR(100)`);
+    await safeAlter(`ALTER TABLE users ADD COLUMN account_status VARCHAR(50) DEFAULT 'Approved'`);
+
+    // campaigns: new v3.1 columns
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN target_platform VARCHAR(50) NOT NULL DEFAULT 'G2'`);
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN product_url VARCHAR(255) NOT NULL DEFAULT ''`);
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN target_industry VARCHAR(100) NOT NULL DEFAULT ''`);
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN reviews_needed INT NOT NULL DEFAULT 5`);
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN gumroad_email VARCHAR(255) DEFAULT NULL`);
+    await safeAlter(`ALTER TABLE campaigns ADD COLUMN invoice_url VARCHAR(255) DEFAULT NULL`);
+    // Ensure target_platform is ENUM
+    await safeAlter(`ALTER TABLE campaigns MODIFY COLUMN target_platform ENUM('G2','Capterra','Trustpilot','Product Hunt','Other') NOT NULL`);
+
+    // applications: new v3.1 columns
+    await safeAlter(`ALTER TABLE applications ADD COLUMN gift_card_code VARCHAR(255) DEFAULT NULL`);
+    // unique key
+    await safeAlter(`ALTER TABLE applications ADD UNIQUE KEY unique_match (reviewer_id, campaign_id)`);
+
+    console.log('Migrations complete.');
 
     // Default admin
     const [rows] = await db.execute('SELECT id FROM users WHERE email = ?', ['admin@saastrust.net']);
