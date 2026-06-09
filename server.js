@@ -703,43 +703,48 @@ app.post('/admin/applications/:id/approve-proof', requireAuth, requireRole('admi
 
 // POST /admin/applications/:id/verify-and-pay — Pending exchange → Completed (+ email + auto-complete campaign)
 app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('admin'), async (req, res) => {
-  const id = parseInt(req.params.id);
-  const { gift_card_code } = req.body;
-  if (!gift_card_code) return res.status(400).json({ error: 'Gift card code required' });
+  try {
+    const id = parseInt(req.params.id);
+    const { gift_card_code } = req.body;
+    if (!gift_card_code) return res.status(400).json({ error: 'Gift card code required' });
 
-  // Get app details
-  const [apps] = await db.execute(`
-    SELECT a.*, u.email as reviewer_email, c.product_name, c.id as campaign_id, c.reviews_needed
-    FROM applications a
-    JOIN users u ON a.reviewer_id = u.id
-    JOIN campaigns c ON a.campaign_id = c.id
-    WHERE a.id = ? AND a.status = 'Pending exchange'
-  `, [id]);
+    // Get app details
+    const [apps] = await db.execute(`
+      SELECT a.*, u.email as reviewer_email, c.product_name, c.id as campaign_id, c.reviews_needed
+      FROM applications a
+      JOIN users u ON a.reviewer_id = u.id
+      JOIN campaigns c ON a.campaign_id = c.id
+      WHERE a.id = ? AND a.status = 'Pending exchange'
+    `, [id]);
 
-  if (apps.length === 0) return res.status(404).json({ error: 'Application not found or not in Pending exchange state' });
+    if (apps.length === 0) return res.status(404).json({ error: 'Application not found or not in Pending exchange state' });
 
-  const app = apps[0];
+    const app = apps[0];
 
-  // Update application to Completed
-  await db.execute(
-    `UPDATE applications SET status = 'Completed', gift_card_code = ? WHERE id = ?`,
-    [gift_card_code, id]
-  );
+    // Update application to Completed
+    await db.execute(
+      `UPDATE applications SET status = 'Completed', gift_card_code = ? WHERE id = ?`,
+      [gift_card_code, id]
+    );
 
-  // Auto-complete campaign if done
-  const [completeCount] = await db.execute(
-    `SELECT COUNT(*) as cnt FROM applications WHERE campaign_id = ? AND status = 'Completed'`,
-    [app.campaign_id]
-  );
+    // Auto-complete campaign if done
+    const [completeCount] = await db.execute(
+      `SELECT COUNT(*) as cnt FROM applications WHERE campaign_id = ? AND status = 'Completed'`,
+      [app.campaign_id]
+    );
 
-  if (completeCount[0].cnt >= app.reviews_needed) {
-    await db.execute(`UPDATE campaigns SET status = 'Completed' WHERE id = ?`, [app.campaign_id]);
+    if (completeCount[0].cnt >= app.reviews_needed) {
+      await db.execute(`UPDATE campaigns SET status = 'Completed' WHERE id = ?`, [app.campaign_id]);
+    }
+
+    // Send email (non-blocking)
+    emailService.sendReviewerPayout(app.reviewer_email, gift_card_code, app.product_name).catch(() => {});
+
+    res.json({ message: 'Gift card released and email sent. Campaign auto-completed if filled.', campaign_completed: completeCount[0].cnt >= app.reviews_needed });
+  } catch (err) {
+    console.error('POST /admin/applications/:id/verify-and-pay error:', err);
+    res.status(500).json({ error: 'Server error while releasing payment' });
   }
-
-  // Send email (non-blocking)
-  emailService.sendReviewerPayout(app.reviewer_email, gift_card_code, app.product_name).catch(() => {});
-
-  res.json({ message: 'Gift card released and email sent. Campaign auto-completed if filled.', campaign_completed: completeCount[0].cnt >= app.reviews_needed });
 });
 
 // GET /admin/campaigns/:id/applications — Get all applications for a campaign

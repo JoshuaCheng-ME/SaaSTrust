@@ -99,40 +99,35 @@ const sendEmail = async (to, subject, html) => {
  * Trigger 1: Employer registration welcome
  */
 const sendEmployerWelcome = (email, name) => {
-  sendEmail(email, 'Welcome to SaaSTrust.net! 🚀', employerWelcome(name))
-    .catch(() => {});
+  return sendEmail(email, 'Welcome to SaaSTrust.net! 🚀', employerWelcome(name));
 };
 
 /**
  * Trigger 2: Employer submitted payment email
  */
 const sendPaymentPending = (email, campaignTitle, gumroadEmail) => {
-  sendEmail(email, `Order Received: Campaign Verification in Progress 💳`, paymentPending(campaignTitle, gumroadEmail))
-    .catch(() => {});
+  return sendEmail(email, `Order Received: Campaign Verification in Progress 💳`, paymentPending(campaignTitle, gumroadEmail));
 };
 
 /**
  * Trigger 3: Reviewer successfully claimed a task
  */
 const sendReviewerTaskLocked = (email, campaignTitle) => {
-  sendEmail(email, `Task Confirmed: ${campaignTitle} is locked for you 🔒`, reviewerTaskLocked(campaignTitle))
-    .catch(() => {});
+  return sendEmail(email, `Task Confirmed: ${campaignTitle} is locked for you 🔒`, reviewerTaskLocked(campaignTitle));
 };
 
 /**
  * Trigger 4: Reviewer submitted proof → notify employer
  */
 const sendEmployerReviewSubmitted = (email, campaignTitle) => {
-  sendEmail(email, `Good News: New Review Submitted for ${campaignTitle} 🎉`, employerReviewSubmitted(campaignTitle))
-    .catch(() => {});
+  return sendEmail(email, `Good News: New Review Submitted for ${campaignTitle} 🎉`, employerReviewSubmitted(campaignTitle));
 };
 
 /**
  * Trigger 5: Admin approved payout → send gift card
  */
 const sendReviewerPayout = (email, cardCode, productName) => {
-  sendEmail(email, `Your $15 Amazon Gift Card from SaaSTrust.net is here! 🎁`, reviewerPayout(cardCode))
-    .catch(() => {});
+  return sendEmail(email, `Your $15 Amazon Gift Card from SaaSTrust.net is here! 🎁`, reviewerPayout(cardCode));
 };
 
 module.exports = {
