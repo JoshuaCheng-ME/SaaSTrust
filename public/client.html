@@ -212,7 +212,7 @@
               <div class="h-full ${color} progress-bar rounded-full" style="width:${progress}%"></div>
             </div>
           </div>
-          ${j.status === 'Pending Payments' ? `
+          ${(j.status || '').toLowerCase().replace(/[ _-]/g, '') === 'pendingpayments' ? `
             <button onclick="openPaymentModal(${j.id}, ${j.reviews_needed})" class="px-4 py-2 text-sm font-medium bg-black text-white rounded-lg hover:bg-gray-800 transition-all">Pay & Activate</button>
           ` : ''}
         </div>`;

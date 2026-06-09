@@ -160,6 +160,14 @@ async function initDB() {
     // Ensure target_platform is ENUM
     await safeAlter(`ALTER TABLE campaigns MODIFY COLUMN target_platform ENUM('G2','Capterra','Trustpilot','Product Hunt','Other') NOT NULL`);
 
+    // Normalize old status values to v3.1 format
+    try {
+      const [r1] = await db.execute(`UPDATE campaigns SET status = 'Pending Payments' WHERE status IN ('pending_payment', 'Pending', 'pending')`);
+      const [r2] = await db.execute(`UPDATE campaigns SET status = 'Pending confirmation' WHERE status IN ('pending_confirmation', 'Pending Wait', 'pending_wait')`);
+      if (r1.affectedRows + r2.affectedRows > 0)
+        console.log(`  Migrated ${r1.affectedRows + r2.affectedRows} campaign statuses to v3.1 format`);
+    } catch (e) { console.log('  Status migration note:', e.message); }
+
     // applications: new v3.1 columns
     await safeAlter(`ALTER TABLE applications ADD COLUMN gift_card_code VARCHAR(255) DEFAULT NULL`);
     // unique key
@@ -395,7 +403,7 @@ app.post('/api/employer/campaigns/:id/submit-payment', requireAuth, requireRole(
     if (campRows.length === 0) return res.status(404).json({ error: 'Campaign not found' });
     if (campRows[0].employer_id !== employerId) return res.status(403).json({ error: 'Not your campaign' });
     if (campRows[0].status !== 'Pending Payments')
-      return res.status(400).json({ error: 'Campaign is not in Pending Payments status' });
+      return res.status(400).json({ error: 'Campaign is not in Pending Payments status. Current: ' + campRows[0].status });
 
     await db.execute(
       'UPDATE campaigns SET gumroad_email = ?, status = ? WHERE id = ?',
