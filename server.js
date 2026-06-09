@@ -356,8 +356,8 @@ app.post('/api/client/campaign', requireAuth, requireRole('employer'), async (re
 
   try {
     const [result] = await db.execute(
-      `INSERT INTO campaigns (employer_id, product_name, product_url, target_industry, target_platform, reviews_needed)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO campaigns (employer_id, product_name, product_url, target_industry, target_platform, reviews_needed, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'Pending Payments')`,
       [req.session.user.id, product_name, product_url, target_industry, target_platform, Number(reviews_needed)]
     );
 
