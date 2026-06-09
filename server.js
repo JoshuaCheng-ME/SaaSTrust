@@ -891,6 +891,29 @@ app.post('/admin/configs', requireAuth, requireRole('admin'), async (req, res) =
   }
 });
 
+// GET /api/employer/campaigns/:id/invoice — Employer downloads invoice for own campaign
+app.get('/api/employer/campaigns/:id/invoice', requireAuth, requireRole('employer'), async (req, res) => {
+  const campaignId = parseInt(req.params.id);
+  const employerId = req.session.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      'SELECT invoice_url FROM campaigns WHERE id = ? AND employer_id = ?',
+      [campaignId, employerId]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Campaign not found' });
+    if (!rows[0].invoice_url) return res.status(404).json({ error: 'No invoice uploaded yet' });
+
+    const filePath = path.join(__dirname, 'public', rows[0].invoice_url);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Invoice file not found on server' });
+
+    res.sendFile(filePath);
+  } catch (err) {
+    console.error('Invoice download error:', err);
+    res.status(500).json({ error: 'Failed to download invoice' });
+  }
+});
+
 // GET /api/employer/pack-urls — Get pack URLs for employer frontend
 app.get('/api/employer/pack-urls', requireAuth, requireRole('employer'), async (req, res) => {
   try {
