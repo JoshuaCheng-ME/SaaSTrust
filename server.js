@@ -242,6 +242,35 @@ function requireRole(...roles) {
 
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// ── Public API: Get current user (returns { user } or { user: null }) ──
+app.get('/api/me', (req, res) => {
+  if (req.session.user) {
+    res.json({ user: req.session.user });
+  } else {
+    res.json({ user: null });
+  }
+});
+
+// ── Public API: Pack URLs for pricing section ──
+app.get('/api/public/pack-urls', async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      'SELECT `key`, `value` FROM system_configs WHERE `key` IN (?, ?, ?)',
+      ['gumroad_pack1_url', 'gumroad_pack2_url', 'gumroad_pack3_url']
+    );
+    const configs = {};
+    rows.forEach(r => { configs[r.key] = r.value; });
+    res.json({
+      pack1: configs['gumroad_pack1_url'] || '#',
+      pack2: configs['gumroad_pack2_url'] || '#',
+      pack3: configs['gumroad_pack3_url'] || '#',
+    });
+  } catch (err) {
+    console.error('GET /api/public/pack-urls error:', err);
+    res.json({ pack1: '#', pack2: '#', pack3: '#' });
+  }
+});
+
 // POST /api/register
 app.post('/api/register', async (req, res) => {
   try {

@@ -36,7 +36,7 @@
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="/" class="text-xl font-bold text-slate-900 tracking-tight">SaaSTrust.net</a>
       <div class="flex items-center gap-3">
-        <a href="/pricing.html" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200">Pricing</a>
+        <a href="#pricing" onclick="event.preventDefault();document.getElementById('pricing').scrollIntoView({behavior:'smooth'});" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200">Pricing</a>
         <a href="/login.html" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200">Login</a>
         <a href="/register.html" class="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-all duration-200">Sign Up</a>
         <a href="#tester" data-tally-open="VLNYJE" data-tally-layout="modal" data-tally-emoji-text="🚀" data-tally-emoji-animation="tada" class="px-5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200 rounded-full hover:bg-slate-100/50">For Testers</a>
@@ -74,10 +74,10 @@
       
       <!-- CTA Buttons -->
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <button data-tally-open="ODEY4K" data-tally-layout="modal" data-tally-emoji-text="👋" data-tally-emoji-animation="wave" class="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 hover:scale-105 transition-all duration-200 shadow-xl shadow-blue-500/20">
+        <button onclick="handleGetReview()" class="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 hover:scale-105 transition-all duration-200 shadow-xl shadow-blue-500/20">
           Get Your First Review
         </button>
-        <button data-tally-open="VLNYJE" data-tally-layout="modal" data-tally-emoji-text="🚀" data-tally-emoji-animation="tada" class="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 font-semibold rounded-full border border-slate-200 hover:bg-slate-50 hover:scale-105 transition-all duration-200 shadow-lg shadow-slate-200/50">
+        <button onclick="handleJoinReviewer()" class="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 font-semibold rounded-full border border-slate-200 hover:bg-slate-50 hover:scale-105 transition-all duration-200 shadow-lg shadow-slate-200/50">
           Join as a Reviewer
         </button>
       </div>
@@ -192,8 +192,59 @@
         <div class="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-12 md:p-16">
           <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Ready to get started?</h2>
           <p class="text-lg text-slate-300 mb-10 max-w-xl mx-auto">Join hundreds of SaaS companies that have built trust with authentic B2B reviews.</p>
-          <button data-tally-open="ODEY4K" data-tally-layout="modal" data-tally-emoji-text="👋" data-tally-emoji-animation="wave" class="px-10 py-4 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-100 hover:scale-105 transition-all duration-200 shadow-xl">
+          <button onclick="handleGetReview()" class="px-10 py-4 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-100 hover:scale-105 transition-all duration-200 shadow-xl">
             Get Your First Review
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="bg-white py-32">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">Simple, Transparent Pricing</h2>
+        <p class="text-lg text-slate-600">Choose the plan that fits your B2B review strategy.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <!-- Starter Pack -->
+        <div class="border border-slate-200 rounded-2xl p-8 hover:shadow-xl transition-all duration-300">
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Starter Pack</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-5xl font-extrabold text-slate-900">$149</span>
+          </div>
+          <p class="text-slate-600 mb-8 text-sm">Perfect for early-stage SaaS companies building initial social proof.</p>
+          <ul class="space-y-3 mb-8 text-sm text-slate-700">
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> 5 Verified G2/Capterra Reviews</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> LinkedIn-Vetted Experts</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> 100% Industry Matching</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Money-Back Guarantee</li>
+          </ul>
+          <button onclick="handleBuyPack(1)" class="w-full py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all">
+            Buy Starter Pack
+          </button>
+        </div>
+        <!-- Growth Pack -->
+        <div class="border-2 border-blue-500 rounded-2xl p-8 hover:shadow-xl transition-all duration-300 relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+            <span class="bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
+          </div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Growth Pack</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-5xl font-extrabold text-slate-900">$299</span>
+          </div>
+          <p class="text-slate-600 mb-8 text-sm">For growing SaaS companies serious about building credibility.</p>
+          <ul class="space-y-3 mb-8 text-sm text-slate-700">
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> 10 Verified G2/Capterra Reviews</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> LinkedIn-Vetted Experts</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Premium Support</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Faster Turnaround</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> 100% Industry Matching</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Money-Back Guarantee</li>
+          </ul>
+          <button onclick="handleBuyPack(2)" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">
+            Buy Growth Pack
           </button>
         </div>
       </div>
@@ -212,60 +263,76 @@
     </div>
   </footer>
 
-  <!-- Modal -->
-  <div id="modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
-    <div class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
-      <!-- Modal Header -->
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
-        <h3 id="modal-title" class="text-xl font-bold text-white"></h3>
-      </div>
-      <!-- Modal Body -->
-      <div class="p-8">
-        <p id="modal-desc" class="text-slate-600 leading-relaxed mb-8"></p>
-        <div class="flex gap-4">
-          <button onclick="closeModal()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-full hover:bg-slate-200 transition-colors">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
-    function openModal(type) {
-      const modal = document.getElementById('modal');
-      const title = document.getElementById('modal-title');
-      const desc = document.getElementById('modal-desc');
-      
-      if (type === 'review') {
-        title.textContent = 'Get Your First Review';
-        desc.textContent = 'Fill out our SaaS submission form and we\'ll match you with verified industry experts. Coming soon!';
-      } else {
-        title.textContent = 'Join as a Reviewer';
-        desc.textContent = 'Apply to join our network of verified professionals. Earn while providing valuable feedback. Coming soon!';
+    // ── Auth helpers ──
+    async function checkAuth() {
+      try {
+        const r = await fetch('/api/me');
+        const d = await r.json();
+        return d.user || null;
+      } catch {
+        return null;
       }
-      
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      document.body.style.overflow = 'hidden';
     }
-    
-    function closeModal() {
-      const modal = document.getElementById('modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      document.body.style.overflow = '';
+
+    // ── Get Your First Review (Hero + bottom CTA) ──
+    async function handleGetReview() {
+      const u = await checkAuth();
+      if (!u) {
+        window.location.href = '/register.html?role=employer';
+      } else if (u.role === 'employer') {
+        window.location.href = '/client.html';
+      } else {
+        alert('You are logged in as a Reviewer. Please use an Employer account to launch campaigns.');
+      }
     }
-    
-    document.getElementById('modal').addEventListener('click', function(e) {
-      if (e.target === this) closeModal();
-    });
-    
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeModal();
-    });
+
+    // ── Join as a Reviewer ──
+    async function handleJoinReviewer() {
+      const u = await checkAuth();
+      if (!u) {
+        window.location.href = '/register.html?role=reviewer';
+      } else if (u.role === 'reviewer') {
+        window.location.href = '/tester.html';
+      } else {
+        window.location.href = '/tester.html';
+      }
+    }
+
+    // ── Pricing card buy buttons ──
+    async function handleBuyPack(packNumber) {
+      const u = await checkAuth();
+      if (!u) {
+        window.location.href = '/register.html?role=employer&pack=' + packNumber;
+      } else if (u.role === 'employer') {
+        window.location.href = '/client.html?pack=' + packNumber;
+      } else {
+        alert('Please use an Employer account to purchase.');
+      }
+    }
+
+    // ── Load pricing config (Gumroad URLs) ──
+    async function loadPricing() {
+      try {
+        const r = await fetch('/api/public/pack-urls');
+        const d = await r.json();
+        window.packUrls = d;
+        // Update card links if URLs are available
+        if (d.pack1 && d.pack1 !== '#') {
+          const btn1 = document.querySelector('[onclick="handleBuyPack(1)"]');
+          if (btn1) btn1.onclick = () => window.open(d.pack1, '_blank');
+        }
+        if (d.pack2 && d.pack2 !== '#') {
+          const btn2 = document.querySelector('[onclick="handleBuyPack(2)"]');
+          if (btn2) btn2.onclick = () => window.open(d.pack2, '_blank');
+        }
+      } catch (e) {
+        console.error('[Pricing] Failed to load pack URLs:', e);
+      }
+    }
+
+    // ── Init ──
+    loadPricing();
   </script>
-  <!-- Tally Forms -->
-  <script src="https://tally.so/widgets/embed.js"></script>
 </body>
 </html>
