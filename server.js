@@ -845,45 +845,30 @@ app.post('/admin/users/:id/toggle-suspend', requireAuth, requireRole('admin'), a
   res.json({ message: `User ${newStatus === 'Suspended' ? 'suspended' : 'approved'}`, account_status: newStatus });
 });
 
-// GET /admin/configs — Fetch Gumroad pack URLs
+// GET /admin/configs — Fetch all system configs
 app.get('/admin/configs', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const [rows] = await db.execute(
-      'SELECT `key`, `value` FROM system_configs WHERE `key` IN (?, ?, ?)',
-      ['gumroad_pack1_url', 'gumroad_pack2_url', 'gumroad_pack3_url']
-    );
+    const [rows] = await db.execute('SELECT `key`, `value` FROM system_configs');
     const configs = {};
     rows.forEach(r => { configs[r.key] = r.value; });
-    res.json({
-      gumroad_pack1_url: configs['gumroad_pack1_url'] || '',
-      gumroad_pack2_url: configs['gumroad_pack2_url'] || '',
-      gumroad_pack3_url: configs['gumroad_pack3_url'] || ''
-    });
+    res.json(configs);
   } catch (err) {
     console.error('GET /admin/configs error:', err);
     res.status(500).json({ error: 'Failed to load configs' });
   }
 });
 
-// POST /admin/configs — Save Gumroad pack URLs (upsert)
+// POST /admin/configs — Save system configs (generic upsert)
 app.post('/admin/configs', requireAuth, requireRole('admin'), async (req, res) => {
-  const { gumroad_pack1_url, gumroad_pack2_url, gumroad_pack3_url } = req.body;
   try {
-    await db.execute(
-      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
-      ['gumroad_pack1_url', gumroad_pack1_url || '']
-    );
-    await db.execute(
-      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
-      ['gumroad_pack2_url', gumroad_pack2_url || '']
-    );
-    await db.execute(
-      `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
-      ['gumroad_pack3_url', gumroad_pack3_url || '']
-    );
+    for (const [key, value] of Object.entries(req.body)) {
+      if (key === 'gumroad_webhook') continue; // read-only
+      await db.execute(
+        `INSERT INTO system_configs (\`key\`, \`value\`) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+        [key, value != null ? String(value) : '']
+      );
+    }
     res.json({ message: 'Configuration saved' });
   } catch (err) {
     console.error('POST /admin/configs error:', err);

@@ -114,6 +114,7 @@
         </div>
       </div>
       <button onclick="saveConfig()" class="mt-6 px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800 transition-all">Save Configuration</button>
+      <p id="configSaveMsg" class="mt-4 text-xs hidden"></p>
     </div>
 
     <!-- ────── PANEL 1: Terms & Lists ────── -->
@@ -292,6 +293,7 @@ function switchPanel(name) {
   document.getElementById('pt-' + name).classList.add('active');
   document.getElementById('pt-' + name).classList.remove('text-slate-500');
 
+  if (name === 'config') loadGlobalConfig();
   if (name === 'terms') loadTermsUsers();
   if (name === 'campaigns') loadCampaigns();
   if (name === 'vetting') loadVetting('Under Review');
@@ -310,9 +312,54 @@ async function loadDashboard() {
   document.getElementById('pendingProofs').textContent = d.pending_proofs_count;
 }
 
-// ─── Panel 0: Save Config ───
-function saveConfig() {
-  alert('Config saved locally. (In production, persist to .env / DB)');
+// ─── Panel 0: Global Config ───
+async function loadGlobalConfig() {
+  try {
+    const r = await fetch('/admin/configs');
+    const d = await r.json();
+    document.getElementById('cfgGumroadToken').value = d.gumroad_access_token || '';
+    document.getElementById('cfgResendKey').value = d.resend_api_key || '';
+    document.getElementById('cfgGaCode').value = d.ga_code || '';
+    document.getElementById('cfgLinkedinId').value = d.linkedin_client_id || '';
+    document.getElementById('cfgLinkedinSecret').value = d.linkedin_client_secret || '';
+    document.getElementById('cfgGoogleId').value = d.google_client_id || '';
+    document.getElementById('cfgGoogleSecret').value = d.google_client_secret || '';
+  } catch (e) { console.error('loadGlobalConfig:', e); }
+}
+
+async function saveConfig() {
+  const body = {
+    gumroad_access_token: document.getElementById('cfgGumroadToken').value.trim(),
+    resend_api_key: document.getElementById('cfgResendKey').value.trim(),
+    ga_code: document.getElementById('cfgGaCode').value.trim(),
+    linkedin_client_id: document.getElementById('cfgLinkedinId').value.trim(),
+    linkedin_client_secret: document.getElementById('cfgLinkedinSecret').value.trim(),
+    google_client_id: document.getElementById('cfgGoogleId').value.trim(),
+    google_client_secret: document.getElementById('cfgGoogleSecret').value.trim()
+  };
+  try {
+    const r = await fetch('/admin/configs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const msg = document.getElementById('configSaveMsg');
+    if (r.ok) {
+      msg.className = 'mt-4 text-xs text-emerald-600';
+      msg.textContent = 'Configuration saved successfully.';
+    } else {
+      msg.className = 'mt-4 text-xs text-red-600';
+      msg.textContent = 'Failed to save configuration.';
+    }
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 3000);
+  } catch (e) {
+    console.error('saveConfig:', e);
+    const msg = document.getElementById('configSaveMsg');
+    msg.className = 'mt-4 text-xs text-red-600';
+    msg.textContent = 'Network error. Please try again.';
+    msg.classList.remove('hidden');
+  }
 }
 
 // ─── Panel 5: Pack Management ───
