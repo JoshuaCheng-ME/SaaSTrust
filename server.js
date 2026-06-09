@@ -579,9 +579,10 @@ app.get('/admin/dashboard-data', requireAuth, requireRole('admin'), async (req, 
   });
 });
 
-// GET /admin/pending-payments — All campaigns except Completed
+// GET /admin/pending-payments — All campaigns except Completed (with optional cascaded applications)
 app.get('/admin/pending-payments', requireAuth, requireRole('admin'), async (req, res) => {
   const filter = req.query.filter || 'all';
+  const includeApps = req.query.include_apps === '1';
   let query = `
     SELECT c.*, u.email as employer_email
     FROM campaigns c
@@ -602,6 +603,30 @@ app.get('/admin/pending-payments', requireAuth, requireRole('admin'), async (req
   query += ` ORDER BY c.id DESC`;
 
   const [campaigns] = await db.execute(query, params);
+
+  // Cascade: fetch applications for all campaigns in one go
+  if (includeApps && campaigns.length > 0) {
+    const campaignIds = campaigns.map(c => c.id);
+    const placeholders = campaignIds.map(() => '?').join(',');
+    const [apps] = await db.execute(`
+      SELECT a.*, u.email as reviewer_email, u.linkedin_profile
+      FROM applications a
+      JOIN users u ON a.reviewer_id = u.id
+      WHERE a.campaign_id IN (${placeholders})
+      ORDER BY a.id ASC
+    `, campaignIds);
+
+    // Group by campaign_id
+    const appMap = {};
+    apps.forEach(a => {
+      if (!appMap[a.campaign_id]) appMap[a.campaign_id] = [];
+      appMap[a.campaign_id].push(a);
+    });
+    campaigns.forEach(c => {
+      c.applications = appMap[c.id] || [];
+    });
+  }
+
   res.json(campaigns);
 });
 
@@ -697,6 +722,40 @@ app.post('/admin/applications/:id/verify-and-pay', requireAuth, requireRole('adm
   await sendGiftCardEmail(app.reviewer_email, gift_card_code, app.product_name);
 
   res.json({ message: 'Gift card released and email sent. Campaign auto-completed if filled.', campaign_completed: completeCount[0].cnt >= app.reviews_needed });
+});
+
+// GET /admin/campaigns/:id/applications — Get all applications for a campaign
+app.get('/admin/campaigns/:id/applications', requireAuth, requireRole('admin'), async (req, res) => {
+  const campaignId = parseInt(req.params.id);
+  try {
+    const [apps] = await db.execute(`
+      SELECT a.*, u.email as reviewer_email, u.linkedin_profile, u.linkedin_id
+      FROM applications a
+      JOIN users u ON a.reviewer_id = u.id
+      WHERE a.campaign_id = ?
+      ORDER BY a.id ASC
+    `, [campaignId]);
+    res.json(apps);
+  } catch (err) {
+    console.error('GET /admin/campaigns/:id/applications error:', err);
+    res.status(500).json({ error: 'Failed to load applications' });
+  }
+});
+
+// POST /admin/applications/:id/reject — Under Review → In Progress (let reviewer re-upload)
+app.post('/admin/applications/:id/reject', requireAuth, requireRole('admin'), async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const [result] = await db.execute(
+      `UPDATE applications SET status = 'In Progress', screenshot_url = NULL WHERE id = ? AND status = 'Under Review'`,
+      [id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Application not found or not in Under Review' });
+    res.json({ message: 'Application rejected. Reviewer can re-upload proof.' });
+  } catch (err) {
+    console.error('Reject error:', err);
+    res.status(500).json({ error: 'Failed to reject application' });
+  }
 });
 
 // GET /admin/users
