@@ -126,6 +126,9 @@
 
   <script>
     let packUrls = { pack1: '', pack2: '', pack3: '' };
+    // Read ?pack= from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedPack = urlParams.get('pack');
 
     async function loadPackUrls() {
       try {
@@ -180,6 +183,8 @@
       }
     }
 
+    let autoOpenedPayment = false;
+
     async function loadJobs() {
       const r = await fetch('/api/client/my-jobs');
       const jobs = await r.json();
@@ -231,6 +236,22 @@
           ` : ''}
         </div>`;
       }).join('');
+
+      // Auto-open payment modal if ?pack= is set and there's a pending-payment campaign
+      if (preselectedPack && !autoOpenedPayment) {
+        const pendingJob = jobs.find(j => {
+          const st = (j.status || '').toLowerCase().replace(/[ _-]/g, '');
+          return st.includes('pendingpayment');
+        });
+        if (pendingJob) {
+          autoOpenedPayment = true;
+          openPaymentModal(pendingJob.id, pendingJob.reviews_needed);
+          // Override pack selection with URL parameter (after openPaymentModal sets it from reviews_needed)
+          const select = document.getElementById('paymentPackSelect');
+          if (select && preselectedPack === '2') select.value = '2';
+          else if (select) select.value = '1';
+        }
+      }
     }
 
     function statusBadge(s) {
@@ -257,7 +278,21 @@
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify(body)
       });
-      if (r.ok) { alert('Campaign created! Complete payment via Gumroad.'); document.getElementById('campaignForm').reset(); loadJobs(); }
+      if (r.ok) {
+        const newJob = await r.json();
+        alert('Campaign created! Complete payment via Gumroad.');
+        document.getElementById('campaignForm').reset();
+        await loadJobs();
+        // Auto-open payment modal if ?pack= is set for the newly created campaign
+        if (preselectedPack && newJob && newJob.campaign_id) {
+          autoOpenedPayment = true;
+          openPaymentModal(newJob.campaign_id, parseInt(document.getElementById('reviewsNeeded').value) || 5);
+          // Override pack selection with URL parameter
+          const select = document.getElementById('paymentPackSelect');
+          if (select && preselectedPack === '2') select.value = '2';
+          else if (select) select.value = '1';
+        }
+      }
       else { const d = await r.json(); alert(d.error || 'Failed'); }
     });
 

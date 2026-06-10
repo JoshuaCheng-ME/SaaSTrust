@@ -38,6 +38,9 @@
   </div>
 
   <script>
+    const loginParams = new URLSearchParams(window.location.search);
+    const loginPack = loginParams.get('pack');
+
     const errorBox = document.getElementById('errorBox');
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -56,7 +59,9 @@
 
       if (r.ok) {
         switch(data.role) {
-          case 'employer': window.location.href = '/client.html'; break;
+          case 'employer':
+            window.location.href = loginPack ? `/client.html?pack=${loginPack}` : '/client.html';
+            break;
           case 'reviewer': window.location.href = '/tester.html'; break;
           case 'admin': window.location.href = '/admin.html'; break;
         }

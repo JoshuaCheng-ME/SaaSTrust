@@ -129,6 +129,16 @@
   </div>
 
   <script>
+    // Read URL params for pre-selection
+    const regParams = new URLSearchParams(window.location.search);
+    const preselectedRole = regParams.get('role');
+    const preselectedPack = regParams.get('pack');
+
+    if (preselectedRole) {
+      const radio = document.querySelector(`input[name="role"][value="${preselectedRole}"]`);
+      if (radio) { radio.checked = true; toggleRoleFields(); }
+    }
+
     function toggleRoleFields() {
       const role = document.querySelector('input[name="role"]:checked')?.value;
       document.getElementById('employerFields').classList.toggle('hidden', role !== 'employer');
@@ -174,7 +184,12 @@
       });
 
       const data = await r.json();
-      if (r.ok) { alert('Registration successful! Please login.'); window.location.href = '/login.html'; }
+      if (r.ok) {
+        alert('Registration successful! Please login.');
+        // Preserve pack parameter for the pricing flow
+        const redirectUrl = preselectedPack ? `/login.html?pack=${preselectedPack}` : '/login.html';
+        window.location.href = redirectUrl;
+      }
       else { alert(data.error); }
     });
   </script>
