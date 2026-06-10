@@ -110,7 +110,6 @@
     if (d.role === 'employer') {
       document.getElementById('backLink').href = '/client.html';
       html += field('E-mail', 'email', 'email', d.email, true);
-      html += field('Gumroad E-mail', 'gumroad_email', 'email', d.gumroad_email, true);
       html += field('Company Name', 'company_name', 'text', d.company_name, false);
       html += field('Contact Name', 'contact_name', 'text', d.contact_name, false);
     } else {
@@ -118,8 +117,6 @@
       html += field('LinkedIn URL', 'linkedin_url', 'text', d.linkedin_url, true);
       html += field('Industry', 'industry', 'text', d.industry, true);
       html += field('Payout E-mail (Amazon Gift Card)', 'payout_email', 'email', d.payout_email, false);
-      html += field('Account Balance', 'account_balance', 'text', '$' + (Number(d.account_balance)||0).toFixed(2), true);
-      html += field('Total Payouts', 'total_payouts', 'text', '$' + (Number(d.total_payouts)||0).toFixed(2), true);
     }
 
     html += `
