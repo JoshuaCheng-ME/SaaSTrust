@@ -116,7 +116,7 @@
             <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">${c.remaining_slots} slots left</span>
           </div>
           <div class="flex items-center justify-between">
-            <p class="text-sm text-slate-500">Complete a review for $20</p>
+            <p class="text-sm text-slate-500">Complete a review for $${c.reward_amount}</p>
             ${claimed 
               ? `<span class="px-4 py-2 bg-slate-100 text-slate-400 font-medium rounded-lg text-sm">Already Claimed</span>`
               : `<button onclick="acceptTask(${c.id})" class="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-all shadow-lg">Accept Task</button>`
@@ -189,7 +189,7 @@
           ${a.status === 'Pending exchange' ? '<p class="text-sm text-blue-600">Admin is processing your payout...</p>' : ''}
           ${a.status === 'Completed' ? `
             <div class="flex items-center justify-between">
-              <p class="text-sm text-green-600">$20 added to your balance!</p>
+              <p class="text-sm text-green-600">$${a.reward_amount} added to your balance!</p>
               ${a.gift_card_code ? `<span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-mono rounded-full">${a.gift_card_code}</span>` : ''}
             </div>
           ` : ''}

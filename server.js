@@ -464,7 +464,12 @@ app.get('/api/tester/matched', requireAuth, requireRole('reviewer'), async (req,
     ORDER BY c.id DESC
   `, [industry]);
 
-  res.json(campaigns);
+  // Dynamically compute reward_amount from parent campaign reviews_needed
+  const campaignsWithPrice = campaigns.map(c => ({
+    ...c,
+    reward_amount: c.reviews_needed >= 20 ? 20 : 15
+  }));
+  res.json(campaignsWithPrice);
 });
 
 // POST /api/tester/apply — Accept task (with capacity check)
@@ -537,23 +542,35 @@ app.post('/api/tester/submit', requireAuth, requireRole('reviewer'), upload.sing
 // GET /api/tester/my-applications
 app.get('/api/tester/my-applications', requireAuth, requireRole('reviewer'), async (req, res) => {
   const [apps] = await db.execute(`
-    SELECT a.*, c.product_name, c.target_platform, c.target_industry
+    SELECT a.*, c.product_name, c.target_platform, c.target_industry, c.reviews_needed
     FROM applications a
     JOIN campaigns c ON a.campaign_id = c.id
     WHERE a.reviewer_id = ?
     ORDER BY a.id DESC
   `, [req.session.user.id]);
-  res.json(apps);
+  // Dynamically attach reward_amount
+  const appsWithPrice = apps.map(a => ({
+    ...a,
+    reward_amount: a.reviews_needed >= 20 ? 20 : 15
+  }));
+  res.json(appsWithPrice);
 });
 
 // GET /api/tester/balance
 app.get('/api/tester/balance', requireAuth, requireRole('reviewer'), async (req, res) => {
   const [rows] = await db.execute(
-    `SELECT COUNT(*) as cnt FROM applications WHERE reviewer_id = ? AND status = 'Completed'`,
+    `SELECT COUNT(*) as cnt,
+      COALESCE(SUM(
+        CASE WHEN c.reviews_needed >= 20 THEN 20 ELSE 15 END
+      ), 0) as total_earned
+    FROM applications a
+    JOIN campaigns c ON a.campaign_id = c.id
+    WHERE a.reviewer_id = ? AND a.status = 'Completed'`,
     [req.session.user.id]
   );
   const count = rows[0].cnt;
-  res.json({ completed_tasks: count, balance: count * 20, total_earned: count * 20 });
+  const totalEarned = Number(rows[0].total_earned) || 0;
+  res.json({ completed_tasks: count, balance: totalEarned, total_earned: totalEarned });
 });
 
 
@@ -606,9 +623,15 @@ app.get('/admin/dashboard-data', requireAuth, requireRole('admin'), async (req, 
     `SELECT COALESCE(SUM(reviews_needed * 29.9), 0) as total_revenue FROM campaigns`
   );
   const [paidCount] = await db.execute(
-    `SELECT COUNT(*) as cnt FROM applications WHERE status = 'Completed'`
+    `SELECT COUNT(*) as cnt,
+      COALESCE(SUM(
+        CASE WHEN c.reviews_needed >= 20 THEN 20 ELSE 15 END
+      ), 0) as total_payouts
+    FROM applications a
+    JOIN campaigns c ON a.campaign_id = c.id
+    WHERE a.status = 'Completed'`
   );
-  const totalPayouts = paidCount[0].cnt * 20;
+  const totalPayouts = Number(paidCount[0].total_payouts) || 0;
   const netProfit = (rev[0].total_revenue || 0) - totalPayouts;
 
   const [pendPay] = await db.execute(
