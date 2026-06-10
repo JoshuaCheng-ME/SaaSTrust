@@ -1031,11 +1031,7 @@ app.post('/admin/configs', requireAuth, requireRole('admin'), async (req, res) =
 app.get('/api/admin/gumroad/orders', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const [rows] = await db.execute(
-      `SELECT go.*, c.product_name as campaign_product_name, c.status as campaign_status
-       FROM gumroad_orders go
-       LEFT JOIN campaigns c ON go.campaign_id = c.id
-       ORDER BY go.purchase_date DESC
-       LIMIT 100`
+      `SELECT * FROM gumroad_orders ORDER BY purchase_date DESC LIMIT 100`
     );
     const orders = rows.map(o => ({
       id: o.id,
@@ -1045,9 +1041,6 @@ app.get('/api/admin/gumroad/orders', requireAuth, requireRole('admin'), async (r
       amount: Number(o.amount),
       currency: o.currency,
       purchase_date: o.purchase_date,
-      campaign_id: o.campaign_id,
-      campaign_product_name: o.campaign_product_name || null,
-      campaign_status: o.campaign_status || null,
       sync_status: o.sync_status,
       created_at: o.created_at
     }));
@@ -1086,11 +1079,10 @@ app.post('/api/admin/gumroad/sync', requireAuth, requireRole('admin'), async (re
     console.log(`[Gumroad Sync] Received ${sales.length} sales from Gumroad`);
 
     if (sales.length === 0) {
-      return res.json({ message: 'No sales found in Gumroad account.', orders: [], synced: 0, activated: 0 });
+      return res.json({ message: 'No sales found in Gumroad account.', orders: [], synced: 0 });
     }
 
     let syncedCount = 0;
-    let activatedCount = 0;
 
     // 3. Process each sale
     for (const sale of sales) {
@@ -1120,59 +1112,12 @@ app.post('/api/admin/gumroad/sync', requireAuth, requireRole('admin'), async (re
           [String(saleId), buyerEmail, productName, amount, currency, purchaseDate, JSON.stringify(sale)]
         );
         syncedCount++;
-
-        // 3c. Try to match campaign by buyer_email → gumroad_email and auto-activate
-        const [campRows] = await db.execute(
-          `SELECT id FROM campaigns WHERE gumroad_email = ? AND status = 'Pending Payments'`,
-          [buyerEmail]
-        );
-
-        if (campRows.length > 0) {
-          const campaignId = campRows[0].id;
-          await db.execute(
-            `UPDATE campaigns SET status = 'Active' WHERE id = ?`,
-            [campaignId]
-          );
-          // Link the order to the campaign
-          await db.execute(
-            `UPDATE gumroad_orders SET campaign_id = ? WHERE gumroad_sale_id = ?`,
-            [campaignId, String(saleId)]
-          );
-          activatedCount++;
-          console.log(`[Gumroad Sync] Campaign #${campaignId} auto-activated (matched: ${buyerEmail})`);
-        }
-      } else {
-        // 3d. Already exists — try re-match if not yet linked and product matches
-        const existingCampaignId = existRows[0].campaign_id;
-        if (!existingCampaignId) {
-          const [campRows] = await db.execute(
-            `SELECT id FROM campaigns WHERE gumroad_email = ? AND status = 'Pending Payments'`,
-            [buyerEmail]
-          );
-          if (campRows.length > 0) {
-            const campaignId = campRows[0].id;
-            await db.execute(
-              `UPDATE campaigns SET status = 'Active' WHERE id = ?`,
-              [campaignId]
-            );
-            await db.execute(
-              `UPDATE gumroad_orders SET campaign_id = ? WHERE gumroad_sale_id = ?`,
-              [campaignId, String(saleId)]
-            );
-            activatedCount++;
-            console.log(`[Gumroad Sync] Campaign #${campaignId} auto-activated (retry match: ${buyerEmail})`);
-          }
-        }
       }
     }
 
     // 4. Return latest orders for frontend table
     const [latestOrders] = await db.execute(
-      `SELECT go.*, c.product_name as campaign_product_name, c.status as campaign_status
-       FROM gumroad_orders go
-       LEFT JOIN campaigns c ON go.campaign_id = c.id
-       ORDER BY go.purchase_date DESC
-       LIMIT 100`
+      `SELECT * FROM gumroad_orders ORDER BY purchase_date DESC LIMIT 100`
     );
 
     // Format for frontend
@@ -1184,18 +1129,14 @@ app.post('/api/admin/gumroad/sync', requireAuth, requireRole('admin'), async (re
       amount: Number(o.amount),
       currency: o.currency,
       purchase_date: o.purchase_date,
-      campaign_id: o.campaign_id,
-      campaign_product_name: o.campaign_product_name || null,
-      campaign_status: o.campaign_status || null,
       sync_status: o.sync_status,
       created_at: o.created_at
     }));
 
     res.json({
-      message: `Sync complete: ${syncedCount} new order(s) imported, ${activatedCount} campaign(s) auto-activated.`,
+      message: `Sync complete: ${syncedCount} new order(s) imported.`,
       orders,
-      synced: syncedCount,
-      activated: activatedCount
+      synced: syncedCount
     });
 
   } catch (err) {
