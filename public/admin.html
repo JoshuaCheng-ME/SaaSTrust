@@ -231,6 +231,43 @@
           <input id="pack3_url" type="url" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-black focus:border-transparent font-mono text-xs" placeholder="https://yourname.gumroad.com/l/mega-pack">
         </div>
       </div>
+
+      <!-- ═══════════ Gumroad Orders Synchronization ═══════════ -->
+      <div class="mt-12 border-t border-slate-100 pt-8">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-lg font-bold">Gumroad Orders Synchronization</h2>
+            <p class="text-xs text-slate-400 mt-1">Fetch and sync orders from your Gumroad account. Auto-matches campaigns by buyer email.</p>
+          </div>
+          <button id="gumroadSyncBtn" onclick="syncGumroadOrders()" class="px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-black transition-all shadow-sm flex items-center gap-2">
+            <svg id="gumroadSyncSpinner" class="hidden animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="gumroadSyncBtnText">Fetch &amp; Sync Orders</span>
+          </button>
+        </div>
+
+        <div id="gumroadSyncMsg" class="hidden mb-4 text-sm"></div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200">
+                <th class="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Purchase Date</th>
+                <th class="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Buyer Email</th>
+                <th class="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Product Name</th>
+                <th class="text-right py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                <th class="text-center py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody id="gumroadOrderTableBody">
+              <tr><td colspan="5" class="text-center py-16 text-slate-400">No orders synced yet. Click "Fetch & Sync Orders" to import.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div id="packSaveMsg" class="mt-4 text-xs hidden"></div>
     </div>
   </div>
@@ -298,7 +335,7 @@ function switchPanel(name) {
   if (name === 'campaigns') loadCampaigns();
   if (name === 'vetting') loadVetting('Under Review');
   if (name === 'directory') loadDirectory();
-  if (name === 'pack') loadPackConfig();
+  if (name === 'pack') { loadPackConfig(); loadGumroadOrders(); }
 }
 
 // ─── Dashboard Data ───
@@ -398,6 +435,109 @@ async function savePackConfig() {
   } catch (e) {
     console.error('savePackConfig:', e);
   }
+}
+
+// ─── Gumroad Orders Sync ───
+async function loadGumroadOrders() {
+  try {
+    const r = await fetch('/api/admin/gumroad/orders');
+    const d = await r.json();
+    if (d.orders && d.orders.length > 0) {
+      renderGumroadOrders(d.orders);
+    }
+  } catch (e) {
+    console.error('loadGumroadOrders:', e);
+  }
+}
+
+async function syncGumroadOrders() {
+  const btn = document.getElementById('gumroadSyncBtn');
+  const btnText = document.getElementById('gumroadSyncBtnText');
+  const spinner = document.getElementById('gumroadSyncSpinner');
+  const msgEl = document.getElementById('gumroadSyncMsg');
+
+  // Set loading state
+  btn.disabled = true;
+  btn.classList.add('opacity-70', 'cursor-not-allowed');
+  btnText.textContent = 'Syncing...';
+  spinner.classList.remove('hidden');
+  msgEl.classList.add('hidden');
+
+  try {
+    const r = await fetch('/api/admin/gumroad/sync', { method: 'POST' });
+    const d = await r.json();
+
+    if (r.ok) {
+      // Success message
+      msgEl.className = 'mb-4 text-sm px-4 py-3 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200';
+      msgEl.innerHTML = `<span class="font-semibold">✓ Sync Complete</span> — ${d.message}`;
+      msgEl.classList.remove('hidden');
+
+      // Render table
+      if (d.orders && d.orders.length > 0) {
+        renderGumroadOrders(d.orders);
+      } else {
+        document.getElementById('gumroadOrderTableBody').innerHTML =
+          '<tr><td colspan="5" class="text-center py-16 text-slate-400">No orders found in Gumroad account.</td></tr>';
+      }
+    } else {
+      // Error message
+      msgEl.className = 'mb-4 text-sm px-4 py-3 rounded-lg bg-red-50 text-red-700 border border-red-200';
+      msgEl.innerHTML = `<span class="font-semibold">✗ Sync Failed</span> — ${d.error || 'Unknown error'}`;
+      msgEl.classList.remove('hidden');
+    }
+  } catch (e) {
+    msgEl.className = 'mb-4 text-sm px-4 py-3 rounded-lg bg-red-50 text-red-700 border border-red-200';
+    msgEl.innerHTML = '<span class="font-semibold">✗ Network Error</span> — Could not reach the server. Please try again.';
+    msgEl.classList.remove('hidden');
+    console.error('syncGumroadOrders:', e);
+  } finally {
+    // Reset button state
+    btn.disabled = false;
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    btnText.textContent = 'Fetch & Sync Orders';
+    spinner.classList.add('hidden');
+  }
+
+  // Auto-hide message after 8 seconds
+  setTimeout(() => { msgEl.classList.add('hidden'); }, 8000);
+}
+
+function renderGumroadOrders(orders) {
+  const tbody = document.getElementById('gumroadOrderTableBody');
+  if (!orders || orders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-16 text-slate-400">No orders to display.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
+    const date = o.purchase_date ? new Date(o.purchase_date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : 'N/A';
+    const amount = o.currency === 'USD' ? '$' + Number(o.amount).toFixed(2) : Number(o.amount).toFixed(2) + ' ' + o.currency;
+
+    let statusHtml = '';
+    if (o.campaign_status === 'Active') {
+      statusHtml = '<span class="px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">✓ Auto-Activated</span>';
+    } else if (o.campaign_status) {
+      statusHtml = `<span class="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">${o.campaign_status}</span>`;
+    } else {
+      statusHtml = '<span class="px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600">Synced</span>';
+    }
+
+    return `
+      <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+        <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">${date}</td>
+        <td class="py-3.5 px-4 font-medium text-slate-900">${o.buyer_email}</td>
+        <td class="py-3.5 px-4 text-slate-700">
+          <div class="max-w-[280px] truncate" title="${o.product_name}">${o.product_name}</div>
+          ${o.campaign_product_name ? `<div class="text-xs text-slate-400 mt-0.5">↳ Campaign: ${o.campaign_product_name}</div>` : ''}
+        </td>
+        <td class="py-3.5 px-4 text-right font-semibold text-slate-900 whitespace-nowrap">${amount}</td>
+        <td class="py-3.5 px-4 text-center">${statusHtml}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ─── Panel 1: Terms Users ───

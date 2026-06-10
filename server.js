@@ -180,6 +180,24 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // gumroad_orders — synced sales from Gumroad API
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS gumroad_orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        gumroad_sale_id VARCHAR(255) UNIQUE NOT NULL,
+        buyer_email VARCHAR(255) NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        amount DECIMAL(10,2) DEFAULT 0,
+        currency VARCHAR(10) DEFAULT 'USD',
+        purchase_date DATETIME,
+        campaign_id INT DEFAULT NULL,
+        sync_status VARCHAR(50) DEFAULT 'synced',
+        raw_data JSON DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('Migrations complete.');
 
     // Default admin
@@ -998,6 +1016,183 @@ app.post('/admin/configs', requireAuth, requireRole('admin'), async (req, res) =
   } catch (err) {
     console.error('POST /admin/configs error:', err);
     res.status(500).json({ error: 'Failed to save configs' });
+  }
+});
+
+// GET /api/admin/gumroad/orders — Load synced orders from database
+app.get('/api/admin/gumroad/orders', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      `SELECT go.*, c.product_name as campaign_product_name, c.status as campaign_status
+       FROM gumroad_orders go
+       LEFT JOIN campaigns c ON go.campaign_id = c.id
+       ORDER BY go.purchase_date DESC
+       LIMIT 100`
+    );
+    const orders = rows.map(o => ({
+      id: o.id,
+      gumroad_sale_id: o.gumroad_sale_id,
+      buyer_email: o.buyer_email,
+      product_name: o.product_name,
+      amount: Number(o.amount),
+      currency: o.currency,
+      purchase_date: o.purchase_date,
+      campaign_id: o.campaign_id,
+      campaign_product_name: o.campaign_product_name || null,
+      campaign_status: o.campaign_status || null,
+      sync_status: o.sync_status,
+      created_at: o.created_at
+    }));
+    res.json({ orders });
+  } catch (err) {
+    console.error('[Gumroad Orders] GET error:', err);
+    res.status(500).json({ error: 'Failed to load orders' });
+  }
+});
+
+// POST /api/admin/gumroad/sync — Sync orders from Gumroad API
+app.post('/api/admin/gumroad/sync', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    // 1. Read Gumroad Access Token from system_configs
+    const [tokenRows] = await db.execute(
+      'SELECT `value` FROM system_configs WHERE `key` = ?', ['gumroad_access_token']
+    );
+    if (!tokenRows.length || !tokenRows[0].value) {
+      return res.status(400).json({ error: 'Gumroad Access Token not configured. Please set it in Panel 0 · Config first.' });
+    }
+    const accessToken = tokenRows[0].value;
+
+    // 2. Fetch sales from Gumroad API
+    console.log('[Gumroad Sync] Fetching sales from Gumroad API...');
+    let gumroadRes;
+    try {
+      gumroadRes = await axios.get('https://api.gumroad.com/v2/sales', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+    } catch (apiErr) {
+      console.error('[Gumroad Sync] API call failed:', apiErr.message);
+      return res.status(502).json({ error: 'Gumroad API request failed: ' + apiErr.message });
+    }
+
+    const sales = gumroadRes.data?.sales || [];
+    console.log(`[Gumroad Sync] Received ${sales.length} sales from Gumroad`);
+
+    if (sales.length === 0) {
+      return res.json({ message: 'No sales found in Gumroad account.', orders: [], synced: 0, activated: 0 });
+    }
+
+    let syncedCount = 0;
+    let activatedCount = 0;
+
+    // 3. Process each sale
+    for (const sale of sales) {
+      const saleId = sale.id;
+      const buyerEmail = sale.email || '';
+      const productName = sale.product_name || sale.name || 'Unknown Product';
+      const amount = parseFloat(sale.price) || 0;
+      const currency = sale.currency || 'USD';
+      const purchaseDate = sale.created_at ? new Date(sale.created_at) : new Date();
+
+      if (!saleId || !buyerEmail) {
+        console.log('[Gumroad Sync] Skipping sale (missing id or email):', saleId);
+        continue;
+      }
+
+      // 3a. Check if order already exists
+      const [existRows] = await db.execute(
+        'SELECT id, campaign_id FROM gumroad_orders WHERE gumroad_sale_id = ?',
+        [String(saleId)]
+      );
+
+      if (existRows.length === 0) {
+        // 3b. INSERT new record
+        await db.execute(
+          `INSERT INTO gumroad_orders (gumroad_sale_id, buyer_email, product_name, amount, currency, purchase_date, raw_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [String(saleId), buyerEmail, productName, amount, currency, purchaseDate, JSON.stringify(sale)]
+        );
+        syncedCount++;
+
+        // 3c. Try to match campaign by buyer_email → gumroad_email and auto-activate
+        const [campRows] = await db.execute(
+          `SELECT id FROM campaigns WHERE gumroad_email = ? AND status = 'Pending Payments'`,
+          [buyerEmail]
+        );
+
+        if (campRows.length > 0) {
+          const campaignId = campRows[0].id;
+          await db.execute(
+            `UPDATE campaigns SET status = 'Active' WHERE id = ?`,
+            [campaignId]
+          );
+          // Link the order to the campaign
+          await db.execute(
+            `UPDATE gumroad_orders SET campaign_id = ? WHERE gumroad_sale_id = ?`,
+            [campaignId, String(saleId)]
+          );
+          activatedCount++;
+          console.log(`[Gumroad Sync] Campaign #${campaignId} auto-activated (matched: ${buyerEmail})`);
+        }
+      } else {
+        // 3d. Already exists — try re-match if not yet linked and product matches
+        const existingCampaignId = existRows[0].campaign_id;
+        if (!existingCampaignId) {
+          const [campRows] = await db.execute(
+            `SELECT id FROM campaigns WHERE gumroad_email = ? AND status = 'Pending Payments'`,
+            [buyerEmail]
+          );
+          if (campRows.length > 0) {
+            const campaignId = campRows[0].id;
+            await db.execute(
+              `UPDATE campaigns SET status = 'Active' WHERE id = ?`,
+              [campaignId]
+            );
+            await db.execute(
+              `UPDATE gumroad_orders SET campaign_id = ? WHERE gumroad_sale_id = ?`,
+              [campaignId, String(saleId)]
+            );
+            activatedCount++;
+            console.log(`[Gumroad Sync] Campaign #${campaignId} auto-activated (retry match: ${buyerEmail})`);
+          }
+        }
+      }
+    }
+
+    // 4. Return latest orders for frontend table
+    const [latestOrders] = await db.execute(
+      `SELECT go.*, c.product_name as campaign_product_name, c.status as campaign_status
+       FROM gumroad_orders go
+       LEFT JOIN campaigns c ON go.campaign_id = c.id
+       ORDER BY go.purchase_date DESC
+       LIMIT 100`
+    );
+
+    // Format for frontend
+    const orders = latestOrders.map(o => ({
+      id: o.id,
+      gumroad_sale_id: o.gumroad_sale_id,
+      buyer_email: o.buyer_email,
+      product_name: o.product_name,
+      amount: Number(o.amount),
+      currency: o.currency,
+      purchase_date: o.purchase_date,
+      campaign_id: o.campaign_id,
+      campaign_product_name: o.campaign_product_name || null,
+      campaign_status: o.campaign_status || null,
+      sync_status: o.sync_status,
+      created_at: o.created_at
+    }));
+
+    res.json({
+      message: `Sync complete: ${syncedCount} new order(s) imported, ${activatedCount} campaign(s) auto-activated.`,
+      orders,
+      synced: syncedCount,
+      activated: activatedCount
+    });
+
+  } catch (err) {
+    console.error('[Gumroad Sync] Unexpected error:', err);
+    res.status(500).json({ error: 'Gumroad sync failed: ' + err.message });
   }
 });
 
