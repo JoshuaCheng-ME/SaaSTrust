@@ -251,6 +251,69 @@ app.get('/api/me', (req, res) => {
   }
 });
 
+// ── Settings API (employer + reviewer) ──
+// GET /api/user/settings — fetch current user's settings (role-specific)
+app.get('/api/user/settings', requireAuth, async (req, res) => {
+  const userId = req.session.user.id;
+  const [rows] = await db.execute(
+    'SELECT email, role, company_name, contact_name, gumroad_email, payout_email, linkedin_url, industry, account_balance, total_payouts FROM users WHERE id = ? LIMIT 1',
+    [userId]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'User not found' });
+
+  const u = rows[0];
+  res.json({
+    email: u.email,
+    role: u.role,
+    // employer fields
+    company_name: u.company_name || '',
+    contact_name: u.contact_name || '',
+    gumroad_email: u.gumroad_email || '',
+    // reviewer fields
+    payout_email: u.payout_email || '',
+    linkedin_url: u.linkedin_url || '',
+    industry: u.industry || '',
+    account_balance: Number(u.account_balance) || 0,
+    total_payouts: Number(u.total_payouts) || 0
+  });
+});
+
+// PUT /api/user/settings — update allowed fields (session-locked to self)
+app.put('/api/user/settings', requireAuth, async (req, res) => {
+  const userId = req.session.user.id;
+  const role = req.session.user.role;
+
+  if (role === 'employer') {
+    const { company_name, contact_name } = req.body;
+    if (company_name === undefined && contact_name === undefined) {
+      return res.status(400).json({ error: 'Nothing to update' });
+    }
+    const sets = [], params = [];
+    if (company_name !== undefined) { sets.push('company_name = ?'); params.push(company_name); }
+    if (contact_name !== undefined) { sets.push('contact_name = ?'); params.push(contact_name); }
+    params.push(userId);
+    await db.execute(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
+
+    // Refresh session
+    if (company_name !== undefined) req.session.user.company_name = company_name;
+    if (contact_name !== undefined) req.session.user.contact_name = contact_name;
+    return res.json({ ok: true });
+  }
+
+  if (role === 'reviewer') {
+    const { payout_email } = req.body;
+    if (payout_email === undefined) {
+      return res.status(400).json({ error: 'Nothing to update' });
+    }
+    await db.execute('UPDATE users SET payout_email = ? WHERE id = ?', [payout_email, userId]);
+
+    req.session.user.payout_email = payout_email;
+    return res.json({ ok: true });
+  }
+
+  return res.status(403).json({ error: 'Forbidden role' });
+});
+
 // ── Public API: Pack URLs for pricing section ──
 app.get('/api/public/pack-urls', async (req, res) => {
   try {

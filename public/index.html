@@ -37,10 +37,9 @@
       <a href="/" class="text-xl font-bold text-slate-900 tracking-tight">SaaSTrust.net</a>
       <div class="flex items-center gap-3">
         <a href="#pricing" onclick="event.preventDefault();document.getElementById('pricing').scrollIntoView({behavior:'smooth'});" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200">Pricing</a>
+        <a href="#" onclick="event.preventDefault();handleFounderClick();" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200 rounded-full hover:bg-slate-100/50">For SaaS Founders</a>
+        <a href="#" onclick="event.preventDefault();handleTesterClick();" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200 rounded-full hover:bg-slate-100/50">For Testers</a>
         <a href="/login.html" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200">Login</a>
-        <a href="/register.html" class="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-all duration-200">Sign Up</a>
-        <a href="#tester" data-tally-open="VLNYJE" data-tally-layout="modal" data-tally-emoji-text="🚀" data-tally-emoji-animation="tada" class="px-5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-all duration-200 rounded-full hover:bg-slate-100/50">For Testers</a>
-        <a href="#founder" data-tally-open="ODEY4K" data-tally-layout="modal" data-tally-emoji-text="👋" data-tally-emoji-animation="wave" class="px-5 py-2 text-sm font-medium bg-slate-900 text-white rounded-full hover:bg-slate-800 hover:scale-105 transition-all duration-200 shadow-lg shadow-slate-900/10">For SaaS Founders</a>
       </div>
     </div>
   </nav>
@@ -289,6 +288,29 @@
         return d.user || null;
       } catch {
         return null;
+      }
+    }
+
+    // ── Header navigation routers ──
+    async function handleFounderClick() {
+      const u = await checkAuth();
+      if (!u) {
+        window.location.href = '/register.html?role=employer';
+      } else if (u.role === 'employer') {
+        window.location.href = '/client.html';
+      } else {
+        alert('Please use an Employer account to access this page.');
+      }
+    }
+
+    async function handleTesterClick() {
+      const u = await checkAuth();
+      if (!u) {
+        window.location.href = '/register.html?role=reviewer';
+      } else if (u.role === 'reviewer') {
+        window.location.href = '/tester.html';
+      } else {
+        alert('Please use a Reviewer account to access this page.');
       }
     }
 
